@@ -1,2 +1,2 @@
 # loan-analyzer
-Loan calculator that supports home, auto, and personal loans. Includes features for payment breakdowns, amortization schedules, and interest analysis.
+Loan analyzer that supports home, auto, and personal loans. Includes features for payment breakdowns, amortization schedules, and interest analysis.
