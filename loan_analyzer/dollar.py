@@ -8,9 +8,6 @@ class Dollar:
     def __str__(self):
         return f"${self.amount:,.2f}"
 
-    def __repr__(self):
-        return f"Dollar({self.amount})"
-
     def __add__(self, other):
         if isinstance(other, Dollar):
             return Dollar(self.amount + other.amount)
