@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
-from BalanceTracker import BalanceTracker
-from Calendar import Calendar
-from Dollar import Dollar
-from Loan import Loan
+
+from loan_utils.balance_tracker import BalanceTracker
+from loan_utils.calendar import Calendar
+from loan_utils.dollar import Dollar
+from loan_utils.loan import Loan
 
 
 class Mortgage(Loan):

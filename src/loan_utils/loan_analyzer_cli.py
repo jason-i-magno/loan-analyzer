@@ -3,7 +3,8 @@
 import argparse
 
 import matplotlib.pyplot as plt
-from Mortgage import Mortgage
+
+from loan_utils.mortgage import Mortgage
 
 
 def main():
