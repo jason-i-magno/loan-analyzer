@@ -21,6 +21,14 @@ def invalid_case(request):
     return request.param
 
 
+def test_dollar_copy_constructor():
+    original: Dollar = Dollar(100)
+    copy: Dollar = Dollar(original)
+
+    assert copy.amount == original.amount
+    assert copy is not original
+
+
 @pytest.mark.parametrize(
     "input_value, expected",
     [
