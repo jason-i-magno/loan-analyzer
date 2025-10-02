@@ -24,21 +24,18 @@ def invalid_case(request):
 @pytest.mark.parametrize(
     "input_value, expected",
     [
+        (0, 0.0),  # zero
+        (0.004, 0.0),  # very small
+        (0.005, 0.01),  # very small
+        (1e20, 100000000000000000000.00),  # very large
         (100, 100.00),  # int
         (100.456, 100.46),  # float
         ("100.456", 100.46),  # str
         (-50.567, -50.57),  # negative float
-        (0, 0.0),  # zero
         (123456789.987, 123456789.99),  # large float
         (0.004, 0.0),  # small float
-        (
-            2.675,
-            2.68,
-        ),  # Ensure floating point precision issues are handled (round(2.675, 2) == 2.67)
-        (
-            "2.675",
-            2.68,
-        ),  # Ensure floating point precision issues are handled (round(2.675, 2) == 2.67)
+        (2.675, 2.68),  # floating point precision
+        ("2.675", 2.68),  # floating point precision str
     ],
 )
 def test_dollar_init_valid(input_value, expected):
@@ -56,6 +53,9 @@ def test_dollar_init_invalid(invalid_case):
     "input_value, expected",
     [
         (0, "$0.00"),  # zero
+        (0.004, "$0.00"),  # very small
+        (0.005, "$0.01"),  # very small
+        (1e20, "$100,000,000,000,000,000,000.00"),  # very large
         (100, "$100.00"),  # 0 < int < 1000
         (1000, "$1,000.00"),  # 1,000 <= int < 1,000,000
         (1000000, "$1,000,000.00"),  # 1,000,000 <= int < 1,000,000,000
@@ -68,6 +68,8 @@ def test_dollar_init_invalid(invalid_case):
         (-1000, "-$1,000.00"),  # negative int
         (-1000.50, "-$1,000.50"),  # negative float
         (-1000.75, "-$1,000.75"),  # negative str
+        (2.675, "$2.68"),  # floating point precision
+        ("2.675", "$2.68"),  # floating point precision str
     ],
 )
 def test_dollar_str(input_value, expected):
@@ -77,11 +79,40 @@ def test_dollar_str(input_value, expected):
     assert Dollar(str(dollar).replace("$", "").replace(",", "")) == dollar
 
 
+@pytest.mark.parametrize(
+    "input_value, expected",
+    [
+        (0, "Dollar(0.00)"),  # zero
+        (0.004, "Dollar(0.00)"),  # very small
+        (0.005, "Dollar(0.01)"),  # very small
+        (1e20, "Dollar(100000000000000000000.00)"),  # very large
+        (100, "Dollar(100.00)"),  # int
+        (100.5, "Dollar(100.50)"),  # float
+        ("100.456", "Dollar(100.46)"),  # str
+        (-50, "Dollar(-50.00)"),  # negative int
+        (-50.567, "Dollar(-50.57)"),  # negative float
+        ("-50.567", "Dollar(-50.57)"),  # negative str
+        (2.675, "Dollar(2.68)"),  # floating point precision
+        ("2.675", "Dollar(2.68)"),  # floating point precision str
+    ],
+)
+def test_dollar_repr(input_value, expected):
+    d = Dollar(input_value)
+    assert repr(d) == expected
+    # Optional: ensure eval(repr(d)) reconstructs equal Dollar
+    reconstructed = eval(repr(d))
+    assert isinstance(reconstructed, Dollar)
+    assert reconstructed.amount == d.amount
+
+
 # --------------------
 # Arithmetic Operators
 # --------------------
 @pytest.fixture(
     params=[
+        ([0, 0], 0.0),  # zero
+        ([0.005, 0.0], 0.01),  # very small
+        ([1e20, 2e20], 3e20),  # very large
         ([100, 50], 150.0),  # int
         ([100.5, 50.25], 150.75),  # float
         (["100.5", "50.25"], 150.75),  # str
@@ -90,12 +121,12 @@ def test_dollar_str(input_value, expected):
         (["100.5", "-50.25"], 50.25),  # negative str
     ]
 )
-def valid_add_case(request):
+def valid_inputs_add(request):
     return request.param
 
 
-def test_dollar_add_valid(valid_add_case):
-    input_value, expected = valid_add_case
+def test_dollar_add_valid(valid_inputs_add):
+    input_value, expected = valid_inputs_add
     dollar_1: Dollar = Dollar(input_value[0])
     dollar_2: Dollar = Dollar(input_value[1])
 
@@ -110,8 +141,8 @@ def test_dollar_add_invalid(invalid_case):
         dollar + invalid_case
 
 
-def test_dollar_iadd_valid(valid_add_case):
-    input_value, expected = valid_add_case
+def test_dollar_iadd_valid(valid_inputs_add):
+    input_value, expected = valid_inputs_add
     dollar: Dollar = Dollar(input_value[0])
     dollar += Dollar(input_value[1])
 
@@ -130,8 +161,8 @@ def test_dollar_iadd_invalid(invalid_case):
         dollar += invalid_case
 
 
-def test_dollar_radd_valid(valid_add_case):
-    input_value, expected = valid_add_case
+def test_dollar_radd_valid(valid_inputs_add):
+    input_value, expected = valid_inputs_add
     dollar: Dollar = Dollar(input_value[1])
 
     assert (input_value[0] + dollar).amount == Decimal(str(expected))
@@ -146,6 +177,9 @@ def test_dollar_radd_invalid(invalid_case):
 
 @pytest.fixture(
     params=[
+        ([0, 0], 0.0),  # zero
+        ([0.005, 0.0], 0.01),  # very small
+        ([2e20, 1e20], 1e20),  # very large
         ([100, 50], 50.0),  # int
         ([100.5, 50.25], 50.25),  # float
         (["100.5", "50.25"], 50.25),  # str
@@ -211,6 +245,9 @@ def test_dollar_rsub_invalid(invalid_case):
 
 @pytest.fixture(
     params=[
+        ([0, 0], 0.0),  # zero
+        ([1.0, 0.005], 0.01),  # very small
+        ([1e20, 10], 1e21),  # very large
         ([100, 50], 5000.0),  # int
         ([100.5, 50.25], 5050.13),  # float
         (["100.5", "50.25"], 5050.13),  # str
@@ -275,6 +312,9 @@ def test_dollar_rmul_invalid(invalid_case):
 
 @pytest.fixture(
     params=[
+        ([0, 1], 0.0),  # zero
+        ([0.005, 1], 0.01),  # very small
+        ([1e20, 10], 1e19),  # very large
         ([100, 50], 2.0),  # int
         ([100.5, 60.25], 1.67),  # float
         (["100.5", "60.25"], 1.67),  # str
@@ -355,6 +395,9 @@ def test_dollar_divide_by_zero():
 @pytest.mark.parametrize(
     "input_value, expected",
     [
+        ([0, 0], True),  # zero
+        ([0.005, 0.01], True),  # very small
+        ([1e20, 1e20], True),  # very large
         ([100, 100], True),  # int equal
         ([100, 50], False),  # int not equal
         ([100.5, 100.5], True),  # float equal
@@ -387,6 +430,13 @@ def test_dollar_eq_invalid(invalid_case):
 @pytest.mark.parametrize(
     "input_value, expected",
     [
+        ([0, 0], False),  # zero
+        ([0.005, 0.01], False),  # very small
+        ([0.004, 0.01], True),  # very small
+        ([0.004, 0.02], True),  # very small
+        ([1e20, 2e20], True),  # very large
+        ([2e20, 2e20], False),  # very large
+        ([3e20, 2e20], False),  # very large
         ([100, 200], True),  # int less
         ([100, 100], False),  # int equal
         ([100, 50], False),  # int greater
@@ -425,6 +475,13 @@ def test_dollar_lt_invalid(invalid_case):
 @pytest.mark.parametrize(
     "input_value, expected",
     [
+        ([0, 0], True),  # zero
+        ([0.01, 0.004], False),  # very small
+        ([0.005, 0.01], True),  # very small
+        ([0.004, 0.01], True),  # very small
+        ([1e20, 2e20], True),  # very large
+        ([2e20, 2e20], True),  # very large
+        ([3e20, 2e20], False),  # very large
         ([100, 200], True),  # int less
         ([100, 100], True),  # int equal
         ([100, 50], False),  # int greater
@@ -463,6 +520,13 @@ def test_dollar_le_invalid(invalid_case):
 @pytest.mark.parametrize(
     "input_value, expected",
     [
+        ([0, 0], False),  # zero
+        ([0.005, 0.02], False),  # very small
+        ([0.005, 0.01], False),  # very small
+        ([0.005, 0.0], True),  # very small
+        ([1e20, 2e20], False),  # very large
+        ([2e20, 2e20], False),  # very large
+        ([3e20, 2e20], True),  # very large
         ([100, 200], False),  # int less
         ([100, 100], False),  # int equal
         ([100, 50], True),  # int greater
@@ -501,6 +565,13 @@ def test_dollar_gt_invalid(invalid_case):
 @pytest.mark.parametrize(
     "input_value, expected",
     [
+        ([0, 0], True),  # zero
+        ([0.005, 0.02], False),  # very small
+        ([0.005, 0.01], True),  # very small
+        ([0.005, 0.0], True),  # very small
+        ([1e20, 2e20], False),  # very large
+        ([2e20, 2e20], True),  # very large
+        ([3e20, 2e20], True),  # very large
         ([100, 200], False),  # int less
         ([100, 100], True),  # int equal
         ([100, 50], True),  # int greater
@@ -542,6 +613,9 @@ def test_dollar_ge_invalid(invalid_case):
 @pytest.mark.parametrize(
     "input_value, expected",
     [
+        (0, 0.0),  # zero
+        (0.005, 0.01),  # very small
+        (1e20, 1e20),  # very large
         (100, 100.0),  # int
         (100.5, 100.5),  # float
         ("100.5", 100.5),  # str
@@ -561,6 +635,9 @@ def test_dollar_abs_valid(input_value, expected):
 @pytest.mark.parametrize(
     "input_value, expected",
     [
+        (0, 0.0),  # zero
+        (0.005, -0.01),  # very small
+        (1e20, -1e20),  # very large
         (100, -100.0),  # int
         (100.5, -100.5),  # float
         ("100.5", -100.5),  # str
@@ -573,3 +650,43 @@ def test_dollar_neg_valid(input_value, expected):
     dollar: Dollar = Dollar(input_value)
 
     assert (-dollar).amount == Decimal(str(expected))
+
+
+# --------------------
+# Internal helpers
+# --------------------
+@pytest.mark.parametrize(
+    "input_value, expected",
+    [
+        (0, 0.0),  # zero
+        (0.004, 0.0),  # very small
+        (0.005, 0.01),  # very small
+        (1e20, 1e20),  # very large
+        (100, 100.0),  # int
+        (100.5, 100.5),  # float
+        ("100.5", 100.5),  # str
+        (-100, -100.0),  # negative int
+        (-100.5, -100.5),  # negative float
+        ("-100.5", -100.5),  # negative str
+    ],
+)
+def test_to_decimal_valid_inputs(input_value, expected):
+    assert Dollar._to_decimal(input_value) == Decimal(str(expected))
+
+
+def test_to_decimal_invalid_inputs(invalid_case):
+    with pytest.raises(TypeError):
+        Dollar._to_decimal(invalid_case)
+
+
+def test_from_decimal_quantization():
+    d = Dollar._from_decimal(Decimal("100.456"))
+
+    assert isinstance(d, Dollar)
+    assert d.amount == Decimal("100.46")
+
+
+def test_from_decimal_negative():
+    d = Dollar._from_decimal(Decimal("-50.555"))
+
+    assert d.amount == Decimal("-50.56")
