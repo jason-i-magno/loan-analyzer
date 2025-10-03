@@ -21,79 +21,83 @@ class Dollar:
     # Arithmetic Operators
     # --------------------
     def __add__(self, other):
-        return Dollar._from_decimal(self.amount + self._to_decimal(other))
+        self._check_is_dollar(other, "+")
+
+        return Dollar._from_decimal(self.amount + other.amount)
 
     def __iadd__(self, other):
-        self.amount = (self.amount + self._to_decimal(other)).quantize(
-            Decimal("0.01"), rounding=ROUND_HALF_UP
-        )
-        return self
+        self._check_is_dollar(other, "+=")
 
-    def __radd__(self, other):
-        return Dollar._from_decimal(self._to_decimal(other) + self.amount)
+        return Dollar._from_decimal(self.amount + other.amount)
 
     def __sub__(self, other):
-        return Dollar._from_decimal(self.amount - self._to_decimal(other))
+        self._check_is_dollar(other, "-")
+
+        return Dollar._from_decimal(self.amount - other.amount)
 
     def __isub__(self, other):
-        self.amount = (self.amount - self._to_decimal(other)).quantize(
-            Decimal("0.01"), rounding=ROUND_HALF_UP
-        )
-        return self
+        self._check_is_dollar(other, "-=")
 
-    def __rsub__(self, other):
-        return Dollar._from_decimal(self._to_decimal(other) - self.amount)
+        return Dollar._from_decimal(self.amount - other.amount)
 
     def __mul__(self, other):
-        return Dollar._from_decimal(self.amount * self._to_decimal(other))
+        self._check_is_dollar(other, "*")
+
+        return Dollar._from_decimal(self.amount * other.amount)
 
     def __imul__(self, other):
-        self.amount = (self.amount * self._to_decimal(other)).quantize(
-            Decimal("0.01"), rounding=ROUND_HALF_UP
-        )
-        return self
+        self._check_is_dollar(other, "*=")
 
-    def __rmul__(self, other):
-        return Dollar._from_decimal(self._to_decimal(other) * self.amount)
+        return Dollar._from_decimal(self.amount * other.amount)
 
     def __truediv__(self, other):
-        return Dollar._from_decimal(self.amount / self._to_decimal(other))
+        self._check_is_dollar(other, "/")
+
+        return Dollar._from_decimal(self.amount / other.amount)
 
     def __itruediv__(self, other):
-        self.amount = (self.amount / self._to_decimal(other)).quantize(
-            Decimal("0.01"), rounding=ROUND_HALF_UP
-        )
-        return self
+        self._check_is_dollar(other, "/=")
 
-    def __rtruediv__(self, other):
-        return Dollar._from_decimal(self._to_decimal(other) / self.amount)
+        return Dollar._from_decimal(self.amount / other.amount)
 
     # --------------------
     # Comparison Operators
     # --------------------
     def __eq__(self, other):
-        return self.amount == self._to_decimal(other)
+        self._check_is_dollar(other, "==")
+
+        return self.amount == other.amount
 
     def __lt__(self, other):
-        return self.amount < self._to_decimal(other)
+        self._check_is_dollar(other, "<")
+
+        return self.amount < other.amount
 
     def __le__(self, other):
-        return self.amount <= self._to_decimal(other)
+        self._check_is_dollar(other, "<=")
+
+        return self.amount <= other.amount
 
     def __gt__(self, other):
-        return self.amount > self._to_decimal(other)
+        self._check_is_dollar(other, ">")
+
+        return self.amount > other.amount
 
     def __ge__(self, other):
-        return self.amount >= self._to_decimal(other)
+        self._check_is_dollar(other, ">=")
+
+        return self.amount >= other.amount
 
     # --------------------
     # Unary Operators
     # --------------------
     def __abs__(self):
-        return Dollar._from_decimal(abs(self.amount))
+        self.amount = abs(self.amount)
+        return self
 
     def __neg__(self):
-        return Dollar._from_decimal(-self.amount)
+        self.amount = -self.amount
+        return self
 
     # --------------------
     # Internal helpers
@@ -107,10 +111,15 @@ class Dollar:
         return obj
 
     @staticmethod
-    def _to_decimal(amount: int | float | str | Dollar) -> Decimal:
+    def _check_is_dollar(other, operation: str):
+        if not isinstance(other, Dollar):
+            raise TypeError(
+                f"Unsupported operand type for {operation}: 'Dollar' and '{type(other).__name__}'"
+            )
+
+    @staticmethod
+    def _to_decimal(amount: int | float | str) -> Decimal:
         """Convert input safely into a Decimal rounded to cents"""
-        if isinstance(amount, Dollar):
-            return amount.amount
         if isinstance(amount, Decimal):
             raise TypeError(
                 "To avoid floating point issues, Decimal input is not allowed. Use float, int, str, or Dollar instead."
@@ -121,3 +130,14 @@ class Dollar:
             )
         except (InvalidOperation, ValueError, TypeError):
             raise TypeError(f"Unsupported type for Dollar conversion: {amount!r}")
+
+    # --------------------
+    # Explicit methods for rates
+    # --------------------
+    def divide_by_rate(self, rate: int | float | Decimal) -> Dollar:
+        """Divide this dollar amount by a rate (e.g. discount factor)."""
+        return Dollar._from_decimal(self.amount / Decimal(str(rate)))
+
+    def multiply_by_rate(self, rate: int | float | Decimal) -> Dollar:
+        """Multiply this dollar amount by a rate (e.g. interest rate, growth factor)."""
+        return Dollar._from_decimal(self.amount * Decimal(str(rate)))

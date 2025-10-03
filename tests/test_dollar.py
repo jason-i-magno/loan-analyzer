@@ -4,23 +4,6 @@ import pytest
 from loan_utils.dollar import Dollar
 
 
-@pytest.fixture(
-    params=[
-        (
-            Decimal(2.675)
-        ),  # Disallow Decimal to prevent issues with floating point precision (e.g., Decimal(2.675) becomes Decimal(2.67499999999999999999999999))
-        (None),  # Disallow None
-        ([]),  # Disallow list
-        ({}),  # Disallow dict
-        (set()),  # Disallow set
-        (object()),  # Disallow object
-        ("abc"),  # Disallow non-numeric string
-    ]
-)
-def invalid_case(request):
-    return request.param
-
-
 def test_dollar_copy_constructor():
     original: Dollar = Dollar(100)
     copy: Dollar = Dollar(original)
@@ -52,9 +35,26 @@ def test_dollar_init_valid(input_value, expected):
     assert dollar.amount == Decimal(str(expected))
 
 
-def test_dollar_init_invalid(invalid_case):
+@pytest.fixture(
+    params=[
+        (
+            Decimal(2.675)
+        ),  # Disallow Decimal to prevent issues with floating point precision (e.g., Decimal(2.675) becomes Decimal(2.67499999999999999999999999))
+        (None),  # Disallow None
+        ([]),  # Disallow list
+        ({}),  # Disallow dict
+        (set()),  # Disallow set
+        (object()),  # Disallow object
+        ("abc"),  # Disallow non-numeric string
+    ],
+)
+def invalid_init_case(request):
+    return request.param
+
+
+def test_dollar_init_invalid(invalid_init_case):
     with pytest.raises(Exception):
-        Dollar(invalid_case)
+        Dollar(invalid_init_case)
 
 
 @pytest.mark.parametrize(
@@ -118,6 +118,26 @@ def test_dollar_repr(input_value, expected):
 # --------------------
 @pytest.fixture(
     params=[
+        (
+            Decimal(2.675)
+        ),  # Disallow Decimal to prevent issues with floating point precision (e.g., Decimal(2.675) becomes Decimal(2.67499999999999999999999999))
+        (None),  # Disallow None
+        ([]),  # Disallow list
+        ({}),  # Disallow dict
+        (set()),  # Disallow set
+        (object()),  # Disallow object
+        ("100"),  # Disallow string
+        (b"100"),  # Disallow bytes
+        (100),  # Disallow int
+        (100.5),  # Disallow float
+    ]
+)
+def invalid_case(request):
+    return request.param
+
+
+@pytest.fixture(
+    params=[
         ([0, 0], 0.0),  # zero
         ([0.005, 0.0], 0.01),  # very small
         ([1e20, 2e20], 3e20),  # very large
@@ -139,7 +159,6 @@ def test_dollar_add_valid(valid_inputs_add):
     dollar_2: Dollar = Dollar(input_value[1])
 
     assert (dollar_1 + dollar_2).amount == Decimal(str(expected))
-    assert (dollar_1 + input_value[1]).amount == Decimal(str(expected))
 
 
 def test_dollar_add_invalid(invalid_case):
@@ -156,11 +175,6 @@ def test_dollar_iadd_valid(valid_inputs_add):
 
     assert dollar.amount == Decimal(str(expected))
 
-    dollar = Dollar(input_value[0])
-    dollar += input_value[1]
-
-    assert dollar.amount == Decimal(str(expected))
-
 
 def test_dollar_iadd_invalid(invalid_case):
     dollar: Dollar = Dollar(100)
@@ -169,14 +183,7 @@ def test_dollar_iadd_invalid(invalid_case):
         dollar += invalid_case
 
 
-def test_dollar_radd_valid(valid_inputs_add):
-    input_value, expected = valid_inputs_add
-    dollar: Dollar = Dollar(input_value[1])
-
-    assert (input_value[0] + dollar).amount == Decimal(str(expected))
-
-
-def test_dollar_radd_invalid(invalid_case):
+def test_dollar_disallowe_radd(invalid_case):
     dollar: Dollar = Dollar(100)
 
     with pytest.raises(Exception):
@@ -207,7 +214,6 @@ def test_dollar_sub_valid(valid_inputs_sub):
     dollar_2: Dollar = Dollar(input_value[1])
 
     assert (dollar_1 - dollar_2).amount == Decimal(str(expected))
-    assert (dollar_1 - input_value[1]).amount == Decimal(str(expected))
 
 
 def test_dollar_sub_invalid(invalid_case):
@@ -224,11 +230,6 @@ def test_dollar_isub_valid(valid_inputs_sub):
 
     assert dollar.amount == Decimal(str(expected))
 
-    dollar = Dollar(input_value[0])
-    dollar -= input_value[1]
-
-    assert dollar.amount == Decimal(str(expected))
-
 
 def test_dollar_isub_invalid(invalid_case):
     dollar: Dollar = Dollar(100)
@@ -237,14 +238,7 @@ def test_dollar_isub_invalid(invalid_case):
         dollar -= invalid_case
 
 
-def test_dollar_rsub_valid(valid_inputs_sub):
-    input_value, expected = valid_inputs_sub
-    dollar: Dollar = Dollar(input_value[1])
-
-    assert (input_value[0] - dollar).amount == Decimal(str(expected))
-
-
-def test_dollar_rsub_invalid(invalid_case):
+def test_dollar_disallow_rsub(invalid_case):
     dollar: Dollar = Dollar(100)
 
     with pytest.raises(Exception):
@@ -274,7 +268,6 @@ def test_dollar_mul_valid(valid_inputs_mul):
     dollar_2: Dollar = Dollar(input_value[1])
 
     assert (dollar_1 * dollar_2).amount == Decimal(str(expected))
-    assert (dollar_1 * input_value[1]).amount == Decimal(str(expected))
 
 
 def test_dollar_mul_invalid(invalid_case):
@@ -291,11 +284,6 @@ def test_dollar_imul_valid(valid_inputs_mul):
 
     assert dollar.amount == Decimal(str(expected))
 
-    dollar = Dollar(input_value[0])
-    dollar *= input_value[1]
-
-    assert dollar.amount == Decimal(str(expected))
-
 
 def test_dollar_imul_invalid(invalid_case):
     dollar: Dollar = Dollar(100)
@@ -304,14 +292,7 @@ def test_dollar_imul_invalid(invalid_case):
         dollar *= invalid_case
 
 
-def test_dollar_rmul_valid(valid_inputs_mul):
-    input_value, expected = valid_inputs_mul
-    dollar: Dollar = Dollar(input_value[1])
-
-    assert (input_value[0] * dollar).amount == Decimal(str(expected))
-
-
-def test_dollar_rmul_invalid(invalid_case):
+def test_dollar_disallow_rmul(invalid_case):
     dollar: Dollar = Dollar(100)
 
     with pytest.raises(Exception):
@@ -341,7 +322,6 @@ def test_dollar_truediv_valid(valid_inputs_truediv):
     dollar_2: Dollar = Dollar(input_value[1])
 
     assert (dollar_1 / dollar_2).amount == Decimal(str(expected))
-    assert (dollar_1 / input_value[1]).amount == Decimal(str(expected))
 
 
 def test_dollar_truediv_invalid(invalid_case):
@@ -358,11 +338,6 @@ def test_dollar_itruediv_valid(valid_inputs_truediv):
 
     assert dollar.amount == Decimal(str(expected))
 
-    dollar = Dollar(input_value[0])
-    dollar /= input_value[1]
-
-    assert dollar.amount == Decimal(str(expected))
-
 
 def test_dollar_itruediv_invalid(invalid_case):
     dollar: Dollar = Dollar(100)
@@ -371,30 +346,16 @@ def test_dollar_itruediv_invalid(invalid_case):
         dollar /= invalid_case
 
 
-def test_dollar_rtruediv_valid(valid_inputs_truediv):
-    input_value, expected = valid_inputs_truediv
-    dollar: Dollar = Dollar(input_value[1])
-
-    assert (input_value[0] / dollar).amount == Decimal(str(expected))
-
-
-def test_dollar_rtruediv_invalid(invalid_case):
+def test_dollar_disallow_rtruediv(invalid_case):
     dollar: Dollar = Dollar(100)
 
     with pytest.raises(Exception):
-        dollar / invalid_case
+        invalid_case / dollar
 
 
 def test_dollar_divide_by_zero():
-    dollar: Dollar = Dollar(100)
-
     with pytest.raises(ZeroDivisionError):
-        dollar / 0
-
-    dollar = Dollar(0)
-
-    with pytest.raises(ZeroDivisionError):
-        100 / dollar
+        Dollar(100) / Dollar(0)
 
 
 # --------------------
@@ -421,18 +382,12 @@ def test_dollar_divide_by_zero():
     ],
 )
 def test_dollar_eq_valid(input_value, expected):
-    dollar_1: Dollar = Dollar(input_value[0])
-    dollar_2: Dollar = Dollar(input_value[1])
-
-    assert (dollar_1 == dollar_2) == expected
-    assert (dollar_1 == input_value[1]) == expected
+    assert (Dollar(input_value[0]) == Dollar(input_value[1])) == expected
 
 
 def test_dollar_eq_invalid(invalid_case):
-    dollar: Dollar = Dollar(100)
-
     with pytest.raises(Exception):
-        dollar == invalid_case
+        Dollar(100) == invalid_case
 
 
 @pytest.mark.parametrize(
@@ -466,18 +421,12 @@ def test_dollar_eq_invalid(invalid_case):
     ],
 )
 def test_dollar_lt_valid(input_value, expected):
-    dollar_1: Dollar = Dollar(input_value[0])
-    dollar_2: Dollar = Dollar(input_value[1])
-
-    assert (dollar_1 < dollar_2) == expected
-    assert (dollar_1 < input_value[1]) == expected
+    assert (Dollar(input_value[0]) < Dollar(input_value[1])) == expected
 
 
 def test_dollar_lt_invalid(invalid_case):
-    dollar: Dollar = Dollar(100)
-
     with pytest.raises(Exception):
-        dollar < invalid_case
+        Dollar(100) < invalid_case
 
 
 @pytest.mark.parametrize(
@@ -511,18 +460,12 @@ def test_dollar_lt_invalid(invalid_case):
     ],
 )
 def test_dollar_le_valid(input_value, expected):
-    dollar_1: Dollar = Dollar(input_value[0])
-    dollar_2: Dollar = Dollar(input_value[1])
-
-    assert (dollar_1 <= dollar_2) == expected
-    assert (dollar_1 <= input_value[1]) == expected
+    assert (Dollar(input_value[0]) <= Dollar(input_value[1])) == expected
 
 
 def test_dollar_le_invalid(invalid_case):
-    dollar: Dollar = Dollar(100)
-
     with pytest.raises(Exception):
-        dollar <= invalid_case
+        Dollar(100) <= invalid_case
 
 
 @pytest.mark.parametrize(
@@ -556,18 +499,12 @@ def test_dollar_le_invalid(invalid_case):
     ],
 )
 def test_dollar_gt_valid(input_value, expected):
-    dollar_1: Dollar = Dollar(input_value[0])
-    dollar_2: Dollar = Dollar(input_value[1])
-
-    assert (dollar_1 > dollar_2) == expected
-    assert (dollar_1 > input_value[1]) == expected
+    assert (Dollar(input_value[0]) > Dollar(input_value[1])) == expected
 
 
 def test_dollar_gt_invalid(invalid_case):
-    dollar: Dollar = Dollar(100)
-
     with pytest.raises(Exception):
-        dollar > invalid_case
+        Dollar(100) > invalid_case
 
 
 @pytest.mark.parametrize(
@@ -601,18 +538,12 @@ def test_dollar_gt_invalid(invalid_case):
     ],
 )
 def test_dollar_ge_valid(input_value, expected):
-    dollar_1: Dollar = Dollar(input_value[0])
-    dollar_2: Dollar = Dollar(input_value[1])
-
-    assert (dollar_1 >= dollar_2) == expected
-    assert (dollar_1 >= input_value[1]) == expected
+    assert (Dollar(input_value[0]) >= Dollar(input_value[1])) == expected
 
 
 def test_dollar_ge_invalid(invalid_case):
-    dollar: Dollar = Dollar(100)
-
     with pytest.raises(Exception):
-        dollar >= invalid_case
+        Dollar(100) >= invalid_case
 
 
 # --------------------
@@ -682,9 +613,9 @@ def test_to_decimal_valid_inputs(input_value, expected):
     assert Dollar._to_decimal(input_value) == Decimal(str(expected))
 
 
-def test_to_decimal_invalid_inputs(invalid_case):
+def test_to_decimal_invalid_inputs(invalid_init_case):
     with pytest.raises(TypeError):
-        Dollar._to_decimal(invalid_case)
+        Dollar._to_decimal(invalid_init_case)
 
 
 def test_from_decimal_quantization():
@@ -698,3 +629,48 @@ def test_from_decimal_negative():
     d = Dollar._from_decimal(Decimal("-50.555"))
 
     assert d.amount == Decimal("-50.56")
+
+
+# --------------------
+# Explicit methods for rates
+# --------------------
+@pytest.fixture(
+    params=[
+        (None),  # Disallow None
+        ([]),  # Disallow list
+        ({}),  # Disallow dict
+        (set()),  # Disallow set
+        (object()),  # Disallow object
+        ("abc"),  # Disallow non-numeric string
+    ],
+)
+def invalid_rate_case(request):
+    return request.param
+
+
+def test_divide_by_rate(valid_inputs_truediv):
+    input_value, expected = valid_inputs_truediv
+    dollar: Dollar = Dollar(input_value[0])
+
+    assert dollar.divide_by_rate(input_value[1]).amount == Decimal(str(expected))
+
+
+def test_divide_by_rate_invalid(invalid_rate_case):
+    dollar: Dollar = Dollar(100)
+
+    with pytest.raises(Exception):
+        dollar.divide_by_rate(invalid_rate_case)
+
+
+def test_multiply_by_rate(valid_inputs_mul):
+    input_value, expected = valid_inputs_mul
+    dollar: Dollar = Dollar(input_value[0])
+
+    assert dollar.multiply_by_rate(input_value[1]).amount == Decimal(str(expected))
+
+
+def test_multiply_by_rate_invalid(invalid_rate_case):
+    dollar: Dollar = Dollar(100)
+
+    with pytest.raises(Exception):
+        dollar.multiply_by_rate(invalid_rate_case)
