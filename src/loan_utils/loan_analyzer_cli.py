@@ -3,7 +3,8 @@
 import argparse
 
 import matplotlib.pyplot as plt
-from Mortgage import Mortgage
+
+from loan_utils.mortgage import Mortgage
 
 
 def main():
@@ -44,7 +45,7 @@ def main():
             closing_costs=args.closing_costs,
         )
 
-        mortgage_15_year.mortgage_details(figure_num=1)
+        mortgage_15_year.mortgage_details()
 
     plt.show()
 
