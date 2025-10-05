@@ -4,6 +4,8 @@ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 
 class Dollar:
+    """A class to represent dollar amounts with precise arithmetic and formatting."""
+
     def __init__(self, amount: int | float | str | Dollar):
         if isinstance(amount, Dollar):
             # Copy constructor
@@ -135,9 +137,9 @@ class Dollar:
     # Explicit methods for rates
     # --------------------
     def divide_by_rate(self, rate: int | float | Decimal) -> Dollar:
-        """Divide this dollar amount by a rate (e.g. discount factor)."""
+        """Divide this dollar amount by a rate."""
         return Dollar._from_decimal(self.amount / Decimal(str(rate)))
 
     def multiply_by_rate(self, rate: int | float | Decimal) -> Dollar:
-        """Multiply this dollar amount by a rate (e.g. interest rate, growth factor)."""
+        """Multiply this dollar amount by a rate."""
         return Dollar._from_decimal(self.amount * Decimal(str(rate)))

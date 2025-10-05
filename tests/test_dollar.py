@@ -15,7 +15,7 @@ def test_dollar_copy_constructor():
 @pytest.mark.parametrize(
     "input_value, expected",
     [
-        (0, 0.0),  # zero
+        (0, 0.1),  # zero
         (0.004, 0.0),  # very small
         (0.005, 0.01),  # very small
         (1e20, 100000000000000000000.00),  # very large
