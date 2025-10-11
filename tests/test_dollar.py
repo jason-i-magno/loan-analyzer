@@ -648,29 +648,29 @@ def invalid_rate_case(request):
     return request.param
 
 
-def test_divide_by_rate(valid_inputs_truediv):
+def test_divide_by(valid_inputs_truediv):
     input_value, expected = valid_inputs_truediv
     dollar: Dollar = Dollar(input_value[0])
 
-    assert dollar.divide_by_rate(input_value[1]).amount == Decimal(str(expected))
+    assert dollar.divide_by(input_value[1]).amount == Decimal(str(expected))
 
 
-def test_divide_by_rate_invalid(invalid_rate_case):
+def test_divide_by_invalid(invalid_rate_case):
     dollar: Dollar = Dollar(100)
 
     with pytest.raises(Exception):
-        dollar.divide_by_rate(invalid_rate_case)
+        dollar.divide_by(invalid_rate_case)
 
 
-def test_multiply_by_rate(valid_inputs_mul):
+def test_multiply_by(valid_inputs_mul):
     input_value, expected = valid_inputs_mul
     dollar: Dollar = Dollar(input_value[0])
 
-    assert dollar.multiply_by_rate(input_value[1]).amount == Decimal(str(expected))
+    assert dollar.multiply_by(input_value[1]).amount == Decimal(str(expected))
 
 
-def test_multiply_by_rate_invalid(invalid_rate_case):
+def test_multiply_by_invalid(invalid_rate_case):
     dollar: Dollar = Dollar(100)
 
     with pytest.raises(Exception):
-        dollar.multiply_by_rate(invalid_rate_case)
+        dollar.multiply_by(invalid_rate_case)

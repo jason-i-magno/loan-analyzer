@@ -134,12 +134,12 @@ class Dollar:
             raise TypeError(f"Unsupported type for Dollar conversion: {amount!r}")
 
     # --------------------
-    # Explicit methods for rates
+    # Explicit methods for multiplication and division
     # --------------------
-    def divide_by_rate(self, rate: int | float | Decimal) -> Dollar:
-        """Divide this dollar amount by a rate."""
-        return Dollar._from_decimal(self.amount / Decimal(str(rate)))
+    def divide_by(self, divisor: int | float | Decimal) -> Dollar:
+        """Divide this dollar amount by a divisor."""
+        return Dollar._from_decimal(self.amount / Decimal(str(divisor)))
 
-    def multiply_by_rate(self, rate: int | float | Decimal) -> Dollar:
-        """Multiply this dollar amount by a rate."""
-        return Dollar._from_decimal(self.amount * Decimal(str(rate)))
+    def multiply_by(self, multiplier: int | float | Decimal) -> Dollar:
+        """Multiply this dollar amount by a multiplier."""
+        return Dollar._from_decimal(self.amount * Decimal(str(multiplier)))
