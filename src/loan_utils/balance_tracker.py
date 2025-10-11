@@ -1,4 +1,4 @@
-from Dollar import Dollar
+from loan_utils.dollar import Dollar
 
 
 class BalanceTracker:
