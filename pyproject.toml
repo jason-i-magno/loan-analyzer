@@ -11,7 +11,15 @@ authors = [
 ]
 readme = "README.md"
 license = { text = "MIT" }
-dependencies = []
+dependencies = [
+    "matplotlib",
+    "pandas",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest"
+]
 
 [project.scripts]
 loan_analyzer_cli = "loan_utils.loan_analyzer_cli:main"
