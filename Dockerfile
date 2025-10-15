@@ -5,7 +5,7 @@ COPY pyproject.toml ./
 COPY src/ ./src/
 COPY tests/ ./tests/
 RUN pip install --no-cache-dir .[test]
-RUN ["pytest", "--verbose", "--disable-warnings", "--maxfail=1"]
+RUN ["pytest", "--disable-warnings", "--maxfail=1", "--quiet"]
 
 # --- production stage ---
 FROM python:3.12-slim
