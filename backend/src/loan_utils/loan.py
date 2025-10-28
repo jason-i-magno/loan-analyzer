@@ -30,6 +30,10 @@ class Loan:
         self.monthly_interest_rate: float = Rate(annual_interest_percent).per_period(12)
         self.term_months: int = term_years * 12
         self.monthly_payment: Dollar = self.calculate_monthly_payment()
+        self.total_amount_payed: Dollar = self.monthly_payment.multiply_by(
+            self.term_months
+        )
+        self.total_interest: Dollar = self.total_amount_payed - self.loan_amount
 
     def amortization_schedule(self) -> None:
         schedule = pd.DataFrame(

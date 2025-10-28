@@ -1,5 +1,3 @@
-import matplotlib.pyplot as plt
-
 from loan_utils.balance_tracker import BalanceTracker
 from loan_utils.dollar import Dollar
 from loan_utils.loan import Loan
@@ -49,10 +47,3 @@ class Mortgage(Loan):
             )
 
             month_count += 1
-        plt.figure()
-        plt.plot(loan_balance_tracker.extract_values(), label="Loan balance")
-        plt.plot(
-            cumulative_loan_interest_tracker.extract_values(),
-            label="Total interest paid",
-        )
-        plt.legend()
