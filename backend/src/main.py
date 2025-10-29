@@ -1,8 +1,6 @@
-import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-
 from src.loan_utils.mortgage import Mortgage
 
 app = FastAPI(title="Loan Analyzer API")
@@ -30,9 +28,18 @@ class LoanInput(BaseModel):
     term_years: int
 
 
-@app.get("/analyze")
-def analyze():
-    return {"message": "Loan analysis complete!"}
+@app.post("/amortization")
+def amortization_schedule(data: LoanInput):
+    mortgage: Mortgage = Mortgage(
+        annual_interest_percent=data.annual_interest_percentage,
+        closing_costs=data.closing_costs,
+        down_payment_percent=data.down_payment_percentage,
+        purchase_price=data.purchase_price,
+        term_years=data.term_years,
+    )
+
+    df = mortgage.amortization_schedule()
+    return df.to_dict(orient="records")
 
 
 @app.post("/analyze")
