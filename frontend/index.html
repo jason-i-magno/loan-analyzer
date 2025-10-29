@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loan Analyzer</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>
+  <script defer src="script.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    input { margin: 5px; }
+    #chart { width: 600px; height: 400px; }
+  </style>
+</head>
+<body>
+  <h1>Loan Analyzer</h1>
+  <label>Purchase Price ($):</label>
+  <input id="purchase_price" type="number" value="250000"><br>
+  <label>Rate (%):</label>
+  <input id="annual_interest_percentage" type="number" value="5"><br>
+  <label>Term Years:</label>
+  <input id="term_years" type="number" value="30"><br>
+  <label>Down Payment (%):</label>
+  <input id="down_payment_percentage" type="number" value="20"><br>
+  <label>Closing Costs ($):</label>
+  <input id="closing_costs" type="number" value="0"><br>
+  <button id="analyze">Analyze</button>
+  <div id="results"></div>
+  <div id="chart"></div>
+</body>
+</html>

@@ -10,10 +10,12 @@ authors = [
     { name="Jason Magno", email="jason.i.magno@gmail.com" }
 ]
 readme = "README.md"
-license = { text = "MIT" }
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
 dependencies = [
-    "matplotlib",
+    "fastapi",
     "pandas",
+    "uvicorn[standard]"
 ]
 
 [project.optional-dependencies]
@@ -26,3 +28,8 @@ loan_analyzer_cli = "loan_utils.loan_analyzer_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-v"
