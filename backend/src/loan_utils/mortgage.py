@@ -21,8 +21,6 @@ class Mortgage(Loan):
         self.closing_costs: Dollar = Dollar(closing_costs)
         self.home_value: Dollar = Dollar(purchase_price)
 
-        print(self.monthly_payment)
-
     def mortgage_details(self) -> None:
         loan_balance_tracker: BalanceTracker = BalanceTracker(self.term_months)
         cumulative_loan_interest_tracker: BalanceTracker = BalanceTracker(

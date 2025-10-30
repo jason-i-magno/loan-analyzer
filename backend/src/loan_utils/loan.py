@@ -35,17 +35,17 @@ class Loan:
         )
         self.total_interest: Dollar = self.total_amount_payed - self.loan_amount
 
-    def amortization_schedule(self) -> None:
+    def amortization_schedule(self) -> pd.DataFrame:
         schedule = pd.DataFrame(
             columns=[
-                "Payment #",
-                "Payment Date",
-                "Payment Amount",
-                "Principal Portion",
-                "Interest Portion",
-                "Total Interest",
-                "Ending Balance",
-                "Resulting LTV%",
+                "payment_id",
+                "payment_date",
+                "payment_amount",
+                "principal_portion",
+                "interest_portion",
+                "total_interest",
+                "ending_balance",
+                "resulting_ltv",
             ]
         )
 
@@ -68,14 +68,14 @@ class Loan:
                     schedule,
                     pd.DataFrame(
                         {
-                            "Payment #": [month],
-                            "Payment Date": [month],
-                            "Payment Amount": [str(self.monthly_payment)],
-                            "Principal Portion": [str(principal)],
-                            "Interest Portion": [str(interest)],
-                            "Total Interest": [str(total_interest)],
-                            "Ending Balance": [str(balance)],
-                            "Resulting LTV%": [
+                            "payment_id": [month],
+                            "payment_date": [month],
+                            "payment_amount": [str(self.monthly_payment)],
+                            "principal_portion": [str(principal)],
+                            "interest_portion": [str(interest)],
+                            "total_interest": [str(total_interest)],
+                            "ending_balance": [str(balance)],
+                            "resulting_ltv": [
                                 f"{(balance.amount / self.home_value.amount) * 100:.3f}%"
                             ],
                         }
@@ -87,7 +87,7 @@ class Loan:
             if balance.amount <= 0:
                 break
 
-        print(schedule)
+        return schedule
 
     def calculate_monthly_payment(self) -> Dollar:
         if self.monthly_interest_rate == 0.0:
