@@ -1,6 +1,8 @@
+from datetime import date
 from decimal import Decimal
 
 import pandas as pd
+from dateutil.relativedelta import relativedelta
 
 from loan_utils.dollar import Dollar
 from loan_utils.rate import Rate
@@ -13,6 +15,7 @@ class Loan:
         self,
         annual_interest_percent: float,
         down_payment_percent: float,
+        origination_date: date,
         purchase_price: float,
         term_years: int,
         monthly_extra_payment: float = 0.0,
@@ -34,6 +37,7 @@ class Loan:
         if term_years <= 0:
             raise ValueError("Term years must be greater than 0.")
 
+        self.origination_date: date = origination_date
         self.purchase_price: Dollar = Dollar(purchase_price)
         self.down_payment: Dollar = self.purchase_price.multiply_by(
             down_payment_percent / 100.0
@@ -69,6 +73,11 @@ class Loan:
         total_interest: Dollar = Dollar(0)
         month: int = 1
 
+        # Calculate first payment date.
+        current_date: date = (self.origination_date + relativedelta(months=+2)).replace(
+            day=1
+        )
+
         while balance.amount > 0 and month <= self.term_months:
             interest: Dollar = balance.multiply_by(self.monthly_interest_rate)
             principal: Dollar = self.monthly_payment - interest
@@ -98,7 +107,7 @@ class Loan:
                     pd.DataFrame(
                         {
                             "payment_id": [month],
-                            "payment_date": [month],
+                            "payment_date": [current_date.isoformat()],
                             "payment_amount": [str(self.monthly_payment)],
                             "principal_portion": [str(principal)],
                             "interest_portion": [str(interest)],
@@ -117,6 +126,7 @@ class Loan:
             if balance.amount <= 0:
                 break
             month += 1
+            current_date += relativedelta(months=1)
 
         return schedule
 

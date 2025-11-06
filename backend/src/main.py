@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loan_utils.mortgage import Mortgage
@@ -24,9 +26,10 @@ class LoanInput(BaseModel):
     annual_interest_percentage: float
     closing_costs: float
     down_payment_percentage: float
+    monthly_extra_payment: float
+    origination_date: date
     purchase_price: float
     term_years: int
-    monthly_extra_payment: float
     # one_time_extras: dict[int, float]
 
 
@@ -36,6 +39,7 @@ def amortization_schedule(data: LoanInput):
         annual_interest_percent=data.annual_interest_percentage,
         closing_costs=data.closing_costs,
         down_payment_percent=data.down_payment_percentage,
+        origination_date=data.origination_date,
         purchase_price=data.purchase_price,
         term_years=data.term_years,
         monthly_extra_payment=data.monthly_extra_payment,
@@ -52,6 +56,7 @@ def analyze_loan(data: LoanInput):
         annual_interest_percent=data.annual_interest_percentage,
         closing_costs=data.closing_costs,
         down_payment_percent=data.down_payment_percentage,
+        origination_date=data.origination_date,
         purchase_price=data.purchase_price,
         term_years=data.term_years,
         monthly_extra_payment=data.monthly_extra_payment,

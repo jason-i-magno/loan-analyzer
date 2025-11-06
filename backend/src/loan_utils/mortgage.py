@@ -1,3 +1,5 @@
+from datetime import date
+
 from loan_utils.balance_tracker import BalanceTracker
 from loan_utils.dollar import Dollar
 from loan_utils.loan import Loan
@@ -9,6 +11,7 @@ class Mortgage(Loan):
         annual_interest_percent: float,
         closing_costs: float,
         down_payment_percent: float,
+        origination_date: date,
         purchase_price: float,
         term_years: int,
         monthly_extra_payment: float = 0.0,
@@ -17,6 +20,7 @@ class Mortgage(Loan):
         super().__init__(
             annual_interest_percent=annual_interest_percent,
             down_payment_percent=down_payment_percent,
+            origination_date=origination_date,
             purchase_price=purchase_price,
             term_years=term_years,
             monthly_extra_payment=monthly_extra_payment,
