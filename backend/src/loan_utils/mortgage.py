@@ -11,15 +11,18 @@ class Mortgage(Loan):
         down_payment_percent: float,
         purchase_price: float,
         term_years: int,
+        monthly_extra_payment: float = 0.0,
+        one_time_extras: dict[int, float] | None = None,
     ):
         super().__init__(
             annual_interest_percent=annual_interest_percent,
             down_payment_percent=down_payment_percent,
             purchase_price=purchase_price,
             term_years=term_years,
+            monthly_extra_payment=monthly_extra_payment,
+            one_time_extras=one_time_extras,
         )
         self.closing_costs: Dollar = Dollar(closing_costs)
-        self.home_value: Dollar = Dollar(purchase_price)
 
     def mortgage_details(self) -> None:
         loan_balance_tracker: BalanceTracker = BalanceTracker(self.term_months)

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from loan_utils.mortgage import Mortgage
 from pydantic import BaseModel
-from src.loan_utils.mortgage import Mortgage
 
 app = FastAPI(title="Loan Analyzer API")
 
@@ -26,6 +26,8 @@ class LoanInput(BaseModel):
     down_payment_percentage: float
     purchase_price: float
     term_years: int
+    monthly_extra_payment: float
+    # one_time_extras: dict[int, float]
 
 
 @app.post("/amortization")
@@ -36,6 +38,8 @@ def amortization_schedule(data: LoanInput):
         down_payment_percent=data.down_payment_percentage,
         purchase_price=data.purchase_price,
         term_years=data.term_years,
+        monthly_extra_payment=data.monthly_extra_payment,
+        # one_time_extras=data.one_time_extras,
     )
 
     df = mortgage.amortization_schedule()
@@ -50,6 +54,8 @@ def analyze_loan(data: LoanInput):
         down_payment_percent=data.down_payment_percentage,
         purchase_price=data.purchase_price,
         term_years=data.term_years,
+        monthly_extra_payment=data.monthly_extra_payment,
+        # one_time_extras=data.one_time_extras,
     )
 
     return {

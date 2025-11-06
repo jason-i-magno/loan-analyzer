@@ -16,7 +16,7 @@ COPY README.md ./
 COPY LICENSE ./
 
 # Install dependencies
-RUN pip install --no-cache-dir .
+RUN pip install --no-cache-dir -e .
 
 # Expose port for FastAPI dev server
 EXPOSE 8000

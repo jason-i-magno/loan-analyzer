@@ -14,6 +14,9 @@ document.getElementById("amortization").addEventListener("click", async () => {
     document.getElementById("purchase_price").value
   );
   const term_years = parseInt(document.getElementById("term_years").value);
+  const monthly_extra_payment = parseFloat(
+    document.getElementById("monthly_extra_payment").value
+  );
 
   const response = await fetch(`${backendBaseUrl}/amortization`, {
     method: "POST",
@@ -24,6 +27,8 @@ document.getElementById("amortization").addEventListener("click", async () => {
       down_payment_percentage,
       purchase_price,
       term_years,
+      monthly_extra_payment,
+      // one_time_extras,
     }),
   });
 
@@ -87,7 +92,10 @@ document.getElementById("analyze").addEventListener("click", async () => {
     document.getElementById("purchase_price").value
   );
   const term_years = parseInt(document.getElementById("term_years").value);
-
+  const monthly_extra_payment = parseFloat(
+    document.getElementById("monthly_extra_payment").value
+  );
+  
   const response = await fetch(`${backendBaseUrl}/analyze`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -97,6 +105,8 @@ document.getElementById("analyze").addEventListener("click", async () => {
       down_payment_percentage,
       purchase_price,
       term_years,
+      monthly_extra_payment,
+      // one_time_extras,
     }),
   });
 
