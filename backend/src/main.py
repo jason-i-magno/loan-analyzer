@@ -33,23 +33,6 @@ class LoanInput(BaseModel):
     # one_time_extras: dict[int, float]
 
 
-@app.post("/amortization")
-def amortization_schedule(data: LoanInput):
-    mortgage: Mortgage = Mortgage(
-        annual_interest_percent=data.annual_interest_percentage,
-        closing_costs=data.closing_costs,
-        down_payment_percent=data.down_payment_percentage,
-        origination_date=data.origination_date,
-        purchase_price=data.purchase_price,
-        term_years=data.term_years,
-        monthly_extra_payment=data.monthly_extra_payment,
-        # one_time_extras=data.one_time_extras,
-    )
-
-    df = mortgage.amortization_schedule()
-    return df.to_dict(orient="records")
-
-
 @app.post("/analyze")
 def analyze_loan(data: LoanInput):
     mortgage: Mortgage = Mortgage(
@@ -66,6 +49,7 @@ def analyze_loan(data: LoanInput):
     return {
         "monthly_payment": mortgage.monthly_payment.amount,
         "principal": mortgage.loan_amount.amount,
+        "schedule": mortgage.amortization_schedule().to_dict(orient="records"),
         "total_interest": mortgage.total_interest.amount,
         "total_cost": mortgage.total_amount_payed.amount,
     }
