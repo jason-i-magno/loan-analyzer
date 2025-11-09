@@ -20,7 +20,7 @@
   <input id="purchase_price" type="number" value="250000"><br>
   <label>Rate (%):</label>
   <input id="annual_interest_percentage" type="number" value="5"><br>
-  <label>Term Years:</label>
+  <label>Term (Years):</label>
   <input id="term_years" type="number" value="30"><br>
   <label>Down Payment (%):</label>
   <input id="down_payment_percentage" type="number" value="20"><br>
@@ -28,6 +28,11 @@
   <input id="closing_costs" type="number" value="0"><br>
   <label>Monthly Extra Payment ($):</label>
   <input id="monthly_extra_payment" type="number" value="0"><br>
+  <div id="extra-payments">
+    <h4>One-time extra payments</h4>
+    <div id="extra-container"></div>
+    <button type="button" id="add-extra">Add Payment</button>
+  </div>
   <button id="analyze">Analyze</button>
   <div id="results"></div>
   <div id="chart"></div>

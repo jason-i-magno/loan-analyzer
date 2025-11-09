@@ -30,7 +30,7 @@ class LoanInput(BaseModel):
     origination_date: date
     purchase_price: float
     term_years: int
-    # one_time_extras: dict[int, float]
+    one_time_extras: dict[date, float] | None
 
 
 @app.post("/analyze")
@@ -43,13 +43,16 @@ def analyze_loan(data: LoanInput):
         purchase_price=data.purchase_price,
         term_years=data.term_years,
         monthly_extra_payment=data.monthly_extra_payment,
-        # one_time_extras=data.one_time_extras,
+        one_time_extras=data.one_time_extras,
     )
+
+    schedule, aggregated = mortgage.amortization_schedule()
 
     return {
         "monthly_payment": mortgage.monthly_payment.amount,
         "principal": mortgage.loan_amount.amount,
-        "schedule": mortgage.amortization_schedule().to_dict(orient="records"),
+        "schedule": schedule.to_dict(orient="records"),
+        "aggregated": aggregated.to_dict(orient="records"),
         "total_interest": mortgage.total_interest.amount,
         "total_cost": mortgage.total_amount_payed.amount,
     }
