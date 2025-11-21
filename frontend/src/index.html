@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loan Analyzer</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>
+  <script defer src="script.js"></script>
+  <script>
+    // On page load or when changing themes, best to add inline in `head` to avoid FOUC
+    if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  </script>
+  <link href="./css/output.css" rel="stylesheet">
+</head>
+<body>
+  <button id="theme-toggle" type="button">
+    <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+    <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+  </button>
+  <section>
+    <div class="mx-auto max-w-screen-xl px-4 2xl:px-0">
+      <div class="mx-auto max-w-5xl">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">Loan Analyzer</h2>
+
+        <div class="mt-6 sm:mt-8 lg:flex lg:items-start lg:gap-12">
+          <div class="w-full rounded-lg border border-gray-200 bg-background-light p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6 lg:max-w-xl lg:p-8">
+            <div class="mb-6 grid grid-cols-2 gap-4">
+              <div class="col-span-2 sm:col-span-1">
+                <label for="origination_date" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"> Origination Date </label>
+                <div class="relative">
+                  <div class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3.5">
+                    <svg class="h-4 w-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                      <path
+                        fill-rule="evenodd"
+                        d="M5 5a1 1 0 0 0 1-1 1 1 0 1 1 2 0 1 1 0 0 0 1 1h1a1 1 0 0 0 1-1 1 1 0 1 1 2 0 1 1 0 0 0 1 1h1a1 1 0 0 0 1-1 1 1 0 1 1 2 0 1 1 0 0 0 1 1 2 2 0 0 1 2 2v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a2 2 0 0 1 2-2ZM3 19v-7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Zm6.01-6a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm2 0a1 1 0 1 1 2 0 1 1 0 0 1-2 0Zm6 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm-10 4a1 1 0 1 1 2 0 1 1 0 0 1-2 0Zm6 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm2 0a1 1 0 1 1 2 0 1 1 0 0 1-2 0Z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <input id="origination_date" type="date" class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 ps-9 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500" placeholder="mm/dd/yyy" required />
+                </div>
+              </div>
+
+              <div class="col-span-2 sm:col-span-1">
+                <label for="purchase_price" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"> Purchase Price </label>
+                <div class="relative">
+                  <div class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3.5">
+                    <span class="text-gray-500 dark:text-gray-400">$</span>
+                  </div>
+                  <input type="text" id="purchase_price" class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 ps-7 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500  dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500" placeholder="0" required />
+                </div>
+              </div>
+
+              <div>
+                <label for="annual_interest_percentage" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"> Rate </label>
+                <div class="relative">
+                  <input type="text" id="annual_interest_percentage" class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 pe-10 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500  dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500" placeholder="0.000" required />
+                  <div class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-13">
+                    <span class="text-gray-500 dark:text-gray-400">%</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <label for="term_years" class="mb-2 flex items-center gap-1 text-sm font-medium text-gray-900 dark:text-white">Term Years</label>
+                <input type="text" id="term_years" aria-describedby="helper-text-explanation" class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500" placeholder="0" required />
+              </div>
+
+              <div>
+                <label for="down_payment_percentage" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"> Down Payment </label>
+                <div class="relative">
+                  <input type="text" id="down_payment_percentage" class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 pe-10 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500  dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500" placeholder="0.000" required />
+                  <div class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-13">
+                    <span class="text-gray-500 dark:text-gray-400">%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-span-2 sm:col-span-1">
+                <label for="closing_costs" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"> Closing Costs </label>
+                <div class="relative">
+                  <div class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3.5">
+                    <span class="text-gray-500 dark:text-gray-400">$</span>
+                  </div>
+                  <input type="text" id="closing_costs" class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 ps-7 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500  dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500" placeholder="0" required />
+                </div>
+              </div>
+
+              <div class="col-span-2 sm:col-span-1">
+                <label for="monthly_extra_payment" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"> Monthly Extra Payment </label>
+                <div class="relative">
+                  <div class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3.5">
+                    <span class="text-gray-500 dark:text-gray-400">$</span>
+                  </div>
+                  <input type="text" id="monthly_extra_payment" class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 ps-7 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500  dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500" placeholder="0" required />
+                </div>
+              </div>
+            </div>
+
+            <h4 class="text-sm font-semibold text-gray-900 dark:text-white">One-time extra payments</h4>
+            <div id="extra-payments"></div>
+            <button id="add-extra" class="flex w-fit items-center justify-center">Add Payment</button>
+
+            <button id="analyze" class="flex w-full items-center justify-center">Analyze</button>
+          </div>
+
+          <div class="mt-6 grow sm:mt-8 lg:mt-0">
+            <div class="space-y-4 rounded-lg border border-gray-100 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-800">
+              <div class="space-y-2">
+                <dl class="flex items-center justify-between gap-4">
+                  <dt class="text-base font-normal text-gray-500 dark:text-gray-400">Monthly Payment</dt>
+                  <dd id=monthly_payment class="text-base font-medium text-gray-900 dark:text-white">$0</dd>
+                </dl>
+
+                <dl class="flex items-center justify-between gap-4">
+                  <dt class="text-base font-normal text-gray-500 dark:text-gray-400">Total Interest</dt>
+                  <dd id="total_interest" class="text-base font-medium text-red-500">$0</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="mx-auto max-w-screen-xl px-4 2xl:px-0">
+      <div class="mx-auto max-w-5xl">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">Visualization</h2>
+
+        <div class="mt-6 sm:mt-8 lg:flex lg:items-start lg:gap-12">
+          <div id="chart"></div>
+          <div id="payment_portion_graph"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="mx-auto max-w-screen-xl px-4 2xl:px-0">
+      <div class="mx-auto max-w-5xl">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">Amortization Schedule</h2>
+
+        <div class="relative overflow-x-auto bg-neutral-primary-soft shadow-xs rounded-base border border-default">
+          <table class="w-full text-sm text-left rtl:text-right text-body">
+            <thead class="bg-neutral-secondary-soft border-b border-default">
+              <tr>
+                <th scope="col" class="px-6 py-3 font-medium">Payment #</th>
+                <th scope="col" class="px-6 py-3 font-medium">Due Date</th>
+                <th scope="col" class="px-6 py-3 font-medium">Payment Date</th>
+                <th scope="col" class="px-6 py-3 font-medium">Description</th>
+                <th scope="col" class="px-6 py-3 font-medium">Payment Amount</th>
+                <th scope="col" class="px-6 py-3 font-medium">Principal Portion</th>
+                <th scope="col" class="px-6 py-3 font-medium">Interest Portion</th>
+                <th scope="col" class="px-6 py-3 font-medium">Total Interest</th>
+                <th scope="col" class="px-6 py-3 font-medium">Ending Balance</th>
+                <th scope="col" class="px-6 py-3 font-medium">Resulting LTV%</th>
+              </tr>
+            </thead>
+            <tbody id="schedule_table_body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+</body>
+</html>
