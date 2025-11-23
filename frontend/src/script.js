@@ -39,11 +39,78 @@ themeToggleBtn.addEventListener("click", function () {
       localStorage.setItem("color-theme", "dark");
     }
   }
+
+  analyzeLoan();
 });
+
+// Plotly Charts
+const plotlyLightTheme = {
+  paper_bgcolor: "transparent",
+  plot_bgcolor: "#f1f5f9", // slate-100
+  font: { color: "#1f2937" }, // gray-800
+  xaxis: { gridcolor: "#e5e7eb" }, // gray-200
+  yaxis: { gridcolor: "#e5e7eb" },
+};
+
+const plotlyDarkTheme = {
+  paper_bgcolor: "transparent",
+  plot_bgcolor: "#1e293b", // slate-800
+  font: { color: "#f1f5f9" }, // slate-100
+  xaxis: { gridcolor: "#334155" }, // slate-700
+  yaxis: { gridcolor: "#334155" },
+};
+
+function isDarkMode() {
+  return document.documentElement.classList.contains("dark");
+}
+
+function getPlotlyTheme() {
+  return isDarkMode() ? plotlyDarkTheme : plotlyLightTheme;
+}
+
+function drawPlotlyCharts(data) {
+  const values = [data.principal, data.total_interest];
+  const labels = ["Principal", "Interest"];
+
+  const fig = {
+    data: [{ type: "pie", values, labels, hole: 0.4 }],
+    layout: {
+      ...getPlotlyTheme(),
+      title: "Loan Breakdown",
+    },
+  };
+
+  Plotly.newPlot("chart", fig.data, fig.layout);
+
+  const aggregated = data.aggregated;
+
+  // Plotly line chart
+  const principal_trace = {
+    x: aggregated.map((row) => row.due_date),
+    y: aggregated.map((row) => row.principal_portion),
+    name: "Principal",
+    type: "scatter",
+    mode: "lines",
+  };
+  const interest_trace = {
+    x: aggregated.map((row) => row.due_date),
+    y: aggregated.map((row) => row.interest_portion),
+    name: "Interest",
+    type: "scatter",
+    mode: "lines",
+  };
+  Plotly.newPlot("payment_portion_graph", [principal_trace, interest_trace], {
+    ...getPlotlyTheme(),
+    title: "Principal vs Interest Over Time",
+    xaxis: { title: "Month" },
+    yaxis: { title: "Amount ($)" },
+  });
+}
 
 const backend_base_url = "http://localhost:8001";
 
-document.getElementById("analyze").addEventListener("click", async () => {
+// Analyze loan
+async function analyzeLoan() {
   const annual_interest_percentage = parseFloat(
     document.getElementById("annual_interest_percentage").value
   );
@@ -96,62 +163,36 @@ document.getElementById("analyze").addEventListener("click", async () => {
     "total_interest"
   ).innerText = `$${data.total_interest}`;
 
-  const values = [data.principal, data.total_interest];
-  const labels = ["Principal", "Interest"];
+  // Plotly Charts
+  drawPlotlyCharts(data);
 
-  const fig = {
-    data: [{ type: "pie", values, labels, hole: 0.4 }],
-    layout: { title: "Loan Breakdown" },
-  };
-
-  Plotly.newPlot("chart", fig.data, fig.layout);
-
+  // Create amortization table
   const schedule = data.schedule;
-  const aggregated = data.aggregated;
-
-  // Plotly line chart
-  const principal_trace = {
-    x: aggregated.map((row) => row.due_date),
-    y: aggregated.map((row) => row.principal_portion),
-    name: "Principal",
-    type: "scatter",
-    mode: "lines",
-  };
-  const interest_trace = {
-    x: aggregated.map((row) => row.due_date),
-    y: aggregated.map((row) => row.interest_portion),
-    name: "Interest",
-    type: "scatter",
-    mode: "lines",
-  };
-  Plotly.newPlot("payment_portion_graph", [principal_trace, interest_trace], {
-    title: "Principal vs Interest Over Time",
-    xaxis: { title: "Month" },
-    yaxis: { title: "Amount ($)" },
-  });
-
-  // Create table
   const table_body = document.getElementById("schedule_table_body");
   table_body.innerHTML = `
     ${schedule
       .map(
         (row) => `
-        <tr class="odd:bg-neutral-primary even:bg-neutral-secondary-soft border-b border-default">
-            <th scope="row" class="px-6 py-4 font-medium text-heading whitespace-nowrap">${row.payment_id}</th>
-            <td class="px-6 py-4">${row.due_date}</td>
-            <td class="px-6 py-4">${row.payment_date}</td>
-            <td class="px-6 py-4">${row.description}</td>
-            <td class="px-6 py-4">${row.payment_amount}</td>
-            <td class="px-6 py-4">${row.principal_portion}</td>
-            <td class="px-6 py-4">${row.interest_portion}</td>
-            <td class="px-6 py-4">${row.total_interest}</td>
-            <td class="px-6 py-4">${row.ending_balance}</td>
-            <td class="px-6 py-4">${row.resulting_ltv}</td>
+        <tr>
+          <th scope="row">${row.payment_id}</th>
+          <td>${row.due_date}</td>
+          <td>${row.payment_date}</td>
+          <td>${row.description}</td>
+          <td>${row.payment_amount}</td>
+          <td>${row.principal_portion}</td>
+          <td>${row.interest_portion}</td>
+          <td>${row.total_interest}</td>
+          <td>${row.ending_balance}</td>
+          <td>${row.resulting_ltv}</td>
         </tr>
       `
       )
       .join("")}
   `;
+}
+
+document.getElementById("analyze").addEventListener("click", async () => {
+  analyzeLoan();
 });
 
 const container = document.getElementById("extra-payments");
@@ -166,15 +207,19 @@ document.getElementById("add-extra").addEventListener("click", () => {
     <div class="col-span-1 sm:col-span-1">
       <div class="relative">
         <div class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3.5">
-          <svg class="h-4 w-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+          <svg class="h-4 w-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                      fill="currentColor" viewBox="0 0 24 24">
             <path
               fill-rule="evenodd"
-              d="M5 5a1 1 0 0 0 1-1 1 1 0 1 1 2 0 1 1 0 0 0 1 1h1a1 1 0 0 0 1-1 1 1 0 1 1 2 0 1 1 0 0 0 1 1h1a1 1 0 0 0 1-1 1 1 0 1 1 2 0 1 1 0 0 0 1 1 2 2 0 0 1 2 2v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a2 2 0 0 1 2-2ZM3 19v-7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Zm6.01-6a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm2 0a1 1 0 1 1 2 0 1 1 0 0 1-2 0Zm6 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm-10 4a1 1 0 1 1 2 0 1 1 0 0 1-2 0Zm6 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm2 0a1 1 0 1 1 2 0 1 1 0 0 1-2 0Z"
+              d="M5 5a1 1 0 0 0 1-1 1 1 0 1 1 2 0 1 1 0 0 0 1 1h1a1 1 0 0 0 1-1 1 1 0 1 1 2 0 1 1 0 0 0 1 1h1a1 1 0 0 0 1-1 1 1 0 1 1 2 0 1 1 0 0 0 1 1 2 2 0 0
+                 1 2 2v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a2 2 0 0 1 2-2ZM3 19v-7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Zm6.01-6a1 1 0 1
+                 0-2 0 1 1 0 0 0 2 0Zm2 0a1 1 0 1 1 2 0 1 1 0 0 1-2 0Zm6 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm-10 4a1 1 0 1 1 2 0 1 1 0 0 1-2 0Zm6 0a1 1 0 1 0-2 0 1
+                 1 0 0 0 2 0Zm2 0a1 1 0 1 1 2 0 1 1 0 0 1-2 0Z"
               clip-rule="evenodd"
             />
           </svg>
         </div>
-        <input datepicker datepicker-format="mm/dd/yyyy" id="origination_date" type="text" class="extra-month block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 ps-9 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500" placeholder="mm/dd/yyy" required />
+        <input datepicker datepicker-format="mm/dd/yyyy" id="origination_date" type="text" class="extra-month ps-9" placeholder="mm/dd/yyy" required />
       </div>
     </div>
 
@@ -183,7 +228,7 @@ document.getElementById("add-extra").addEventListener("click", () => {
         <div class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3.5">
           <span class="text-gray-500 dark:text-gray-400">$</span>
         </div>
-        <input type="text" id="purchase_price" class="extra-amount block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 ps-7 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500  dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500" placeholder="0" required />
+        <input type="text" id="purchase_price" class="extra-amount ps-7 " placeholder="0" required />
       </div>
     </div>
     <div class="col-span-1 sm:col-span-1">

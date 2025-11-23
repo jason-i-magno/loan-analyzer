@@ -1,4 +1,38 @@
+# --- Node ---
+node_modules/
+npm-debug.log
+yarn-error.log
+.pnpm-debug.log
+
+# --- Python ---
 __pycache__/
-.pytest_cache/
-.venv/
 *.pyc
+*.pyo
+*.pyd
+*.sqlite3
+venv/
+.env
+.env.*
+.pytest_cache/
+
+# --- Build artifacts ---
+*.log
+*.db
+*.pid
+*.swp
+
+# --- Frontend build cache ---
+frontend/.cache/
+frontend/dist/
+frontend/node_modules/
+frontend/npm-debug.log
+
+# --- Git ---
+.git/
+.gitignore
+
+# --- OS / IDE files ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

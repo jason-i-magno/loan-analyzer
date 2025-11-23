@@ -107,8 +107,10 @@
     --color-dark-backdrop: var(--color-gray-950);
 
     /* FONT FAMILY VARIABLES */
-    --font-sans: 'Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-    --font-body: 'Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans',
+                 'sans-serif', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-body: 'Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans',
+                 'sans-serif', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
     --font-mono: 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'monospace';
 
     /* BORDER RADIUS VARIABLES */
@@ -123,14 +125,54 @@
 
 @layer base {
     button {
-        @apply bg-blue-700 dark:bg-blue-600 text-white hover:bg-blue-800 dark:hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 rounded-lg text-sm p-2.5 font-medium
+        @apply bg-blue-700 dark:bg-blue-600 text-white hover:bg-blue-800 dark:hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300
+               dark:focus:ring-blue-800 rounded-lg text-sm p-2.5 font-medium;
     }
 
     body {
         @apply bg-background-light dark:bg-background-dark;
     }
 
+    h2 {
+        @apply text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl;
+    }
+
+    input {
+        @apply block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500
+               dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500
+    }
+    
+    label {
+        @apply mb-2 text-sm font-medium text-gray-900 dark:text-white;
+    }
+
     section {
         @apply bg-background-light py-8 antialiased dark:bg-background-dark md:py-16;
+    }
+
+    table {
+        @apply w-full text-sm text-left rtl:text-right text-body;
+    }
+
+    td {
+        @apply text-gray-900 dark:text-gray-100 px-6 py-4;
+    }
+
+    th {
+        @apply text-heading dark:text-white px-6 py-4 font-medium whitespace-nowrap;
+    }
+
+    thead {
+        @apply bg-gray-50 dark:bg-gray-700 rounded-lg border-b border-gray-300 dark:border-gray-600;
+    }
+
+    tr {
+        @apply odd:bg-white dark:odd:bg-background-dark even:bg-gray-50 dark:even:bg-gray-700 border-b border-gray-300 dark:border-gray-600;
+    }
+}
+
+@layer components {
+    .table_header_row {
+        @apply bg-gray-50 dark:bg-gray-700;
     }
 }
