@@ -3,10 +3,13 @@ from datetime import date
 from decimal import Decimal
 
 import pandas as pd
-from dateutil.relativedelta import relativedelta
 
+from loan_utils.calc import monthly_payment
 from loan_utils.dollar import Dollar
+from loan_utils.formatting import format_aggregated, format_schedule
+from loan_utils.models import LoanTerms
 from loan_utils.rate import Rate
+from loan_utils.schedule import aggregate_schedule, build_payment_events, build_schedule
 
 
 class Loan:
@@ -59,131 +62,39 @@ class Loan:
         return day.month == 2 and day.day == monthrange(day.year, 2)[1]
 
     def amortization_schedule(self) -> pd.DataFrame:
-        schedule = pd.DataFrame(
-            columns=[
-                "payment_id",
-                "due_date",
-                "payment_date",
-                "description",
-                "payment_amount",
-                "principal_portion",
-                "interest_portion",
-                "total_interest",
-                "ending_balance",
-                "resulting_ltv",
-            ]
+        """Return schedule and aggregated DataFrames for API compatibility."""
+        terms = LoanTerms(
+            principal=self.loan_amount.amount,
+            purchase_price=self.purchase_price.amount,
+            annual_rate=Decimal(str(self.annual_interest_rate)),
+            monthly_rate=Decimal(str(self.monthly_interest_rate)),
+            term_months=self.term_months,
+            origination_date=self.origination_date,
         )
 
-        balance: Dollar = self.loan_amount
-        self.total_interest: Dollar = Dollar(0)
-
-        # Build all events (scheduled + extras)
-        events = []
-        due_date: date = (self.origination_date + relativedelta(months=+2)).replace(
-            day=1
-        )
-        payment_date: date = due_date
-        for _ in range(self.term_months):
-            if self.monthly_extra_payment > Dollar(0):
-                events.append(
-                    (
-                        "curtailment",
-                        payment_date + relativedelta(days=-1),
-                        self.monthly_extra_payment,
-                    )
-                )
-            events.append(("scheduled", payment_date, self.monthly_payment))
-            payment_date += relativedelta(months=+1)
-
-        for payment_date, amount in self.one_time_extras.items():
-            events.append(("curtailment", payment_date, Dollar(amount)))
-
-        events.sort(key=lambda e: e[1])  # sort by date
-
-        payment_id: int = 0
-
-        for event_type, current_date, amount in events:
-            if balance.amount <= 0:
-                break
-
-            payment_id += 1
-
-            # --- apply payment ---
-            if event_type == "scheduled":
-                interest = balance.multiply_by(self.monthly_interest_rate)
-                principal = amount - interest
-                balance -= principal
-                self.total_interest += interest
-                description = "Scheduled"
-            else:  # one-time extra payment
-                principal = amount
-                interest = Dollar(0)
-                balance -= amount
-                description = "Curtailment"
-
-            self.total_amount_payed += amount
-
-            if balance.amount < 0:
-                balance = Dollar(0)
-
-            schedule = pd.concat(
-                [
-                    schedule,
-                    pd.DataFrame(
-                        {
-                            "payment_id": [payment_id],
-                            "due_date": [due_date.isoformat()],
-                            "payment_date": [current_date.isoformat()],
-                            "description": [description],
-                            "payment_amount": [str(amount)],
-                            "principal_portion": [principal],
-                            "interest_portion": [interest],
-                            "total_interest": [str(self.total_interest)],
-                            "ending_balance": [str(balance)],
-                            "resulting_ltv": [
-                                f"{(balance.amount / self.purchase_price.amount) * 100:.3f}%"
-                            ],
-                        }
-                    ),
-                ],
-                ignore_index=True,
-            )
-
-            if balance.amount <= 0:
-                break
-
-            if event_type == "scheduled":
-                due_date += relativedelta(months=+1)
-
-        # Group by due_date and sum principal + interest for plotting convenience
-        aggregated = (
-            schedule.groupby("due_date", as_index=False)
-            .agg(
-                {
-                    "principal_portion": lambda x: sum(v.amount for v in x),
-                    "interest_portion": lambda x: sum(v.amount for v in x),
-                }
-            )
-            .sort_values("due_date")
+        events = build_payment_events(
+            origination_date=terms.origination_date,
+            term_months=terms.term_months,
+            monthly_payment=self.monthly_payment.amount,
+            monthly_extra=self.monthly_extra_payment.amount,
+            extras={d: Decimal(str(a)) for d, a in self.one_time_extras.items()},
         )
 
-        # Convert numeric columns back to strings for JSON serialization
-        schedule["principal_portion"] = schedule["principal_portion"].map(
-            lambda v: str(v)
-        )
-        schedule["interest_portion"] = schedule["interest_portion"].map(
-            lambda v: str(v)
-        )
+        rows, total_interest, total_paid = build_schedule(terms, events)
+        aggregated_rows = aggregate_schedule(rows)
 
-        return schedule, aggregated
+        schedule_df = pd.DataFrame(format_schedule(rows))
+        aggregated_df = pd.DataFrame(format_aggregated(aggregated_rows))
+
+        self.total_interest = Dollar(str(total_interest))
+        self.total_amount_payed = Dollar(str(total_paid))
+
+        return schedule_df, aggregated_df
 
     def calculate_monthly_payment(self) -> Dollar:
-        if self.monthly_interest_rate == 0.0:
-            return self.loan_amount.divide_by(self.term_months)
-
-        interest_rate: Decimal = Decimal(str(self.monthly_interest_rate))
-
-        return self.loan_amount.multiply_by(
-            interest_rate
-            / (Decimal(1) - (Decimal(1) + interest_rate) ** -self.term_months)
+        payment: Decimal = monthly_payment(
+            principal=self.loan_amount.amount,
+            monthly_rate=Decimal(str(self.monthly_interest_rate)),
+            term_months=self.term_months,
         )
+        return Dollar(str(payment))
