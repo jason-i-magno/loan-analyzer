@@ -1,4 +1,3 @@
-from calendar import monthrange
 from datetime import date
 from decimal import Decimal
 
@@ -56,10 +55,6 @@ class Loan:
 
         self.monthly_extra_payment: Dollar = Dollar(monthly_extra_payment)
         self.one_time_extras: dict[date, float] = one_time_extras or {}
-
-    @staticmethod
-    def is_last_day_of_feb(day: date) -> bool:
-        return day.month == 2 and day.day == monthrange(day.year, 2)[1]
 
     def amortization_schedule(self) -> pd.DataFrame:
         """Return schedule and aggregated DataFrames for API compatibility."""
