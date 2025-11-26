@@ -132,7 +132,6 @@ async function analyzeLoan() {
   // One time extra payments.
   const extras = {};
   document.querySelectorAll(".extra-row").forEach((row) => {
-    console.log("Found row");
     const month = row.querySelector(".extra-month").value;
     const amount = parseFloat(row.querySelector(".extra-amount").value);
     if (month && !isNaN(amount)) extras[month] = amount;
@@ -219,7 +218,7 @@ document.getElementById("add-extra").addEventListener("click", () => {
             />
           </svg>
         </div>
-        <input datepicker datepicker-format="mm/dd/yyyy" id="origination_date" type="text" class="extra-month ps-9" placeholder="mm/dd/yyy" required />
+        <input id="origination_date" type="date" class="extra-month ps-9" placeholder="mm/dd/yyy" required />
       </div>
     </div>
 
