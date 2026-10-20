@@ -2,11 +2,18 @@ import math
 from datetime import date
 from typing import Any, Dict, List, Tuple
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loan_utils.mortgage import Mortgage
+from loan_utils.schedule import final_due_date
 from pydantic import BaseModel
+
+MAX_ANNUAL_INTEREST_PERCENTAGE = 100
+# Caps every dollar input; also keeps amounts within Decimal's 28-digit precision.
+MAX_DOLLAR_AMOUNT = 1_000_000_000
+MAX_TERM_YEARS = 50
 
 app = FastAPI(title="Loan Analyzer API")
 
@@ -33,7 +40,17 @@ class LoanInput(BaseModel):
     origination_date: date
     purchase_price: float
     term_years: int
-    one_time_extras: dict[date, float] | None
+    one_time_extras: dict[date, float] | None = None
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_handler(request: Request, exc: RequestValidationError):
+    """Report schema errors in the same {"errors": [...]} shape as validate_payload."""
+    errors = []
+    for err in exc.errors():
+        field = ".".join(str(part) for part in err["loc"] if part != "body")
+        errors.append(f"{field}: {err['msg']}" if field else err["msg"])
+    return JSONResponse(status_code=422, content={"errors": errors})
 
 
 def _validate_number(
@@ -43,9 +60,7 @@ def _validate_number(
     min_value: float | None = None,
     max_value: float | None = None,
 ) -> str | None:
-    if value is None:
-        return f"{name} is required."
-    if isinstance(value, float) and not math.isfinite(value):
+    if not math.isfinite(value):
         return f"{name} must be a finite number."
     if min_value is not None and value < min_value:
         return f"{name} must be >= {min_value}."
@@ -58,12 +73,17 @@ def validate_payload(data: LoanInput) -> Tuple[Dict[str, Any] | None, List[str]]
     errors: list[str] = []
 
     checks = [
-        ("annual_interest_percentage", data.annual_interest_percentage, 0.0, None),
-        ("closing_costs", data.closing_costs, 0.0, None),
-        ("down_payment_percentage", data.down_payment_percentage, 0.0, 100.0),
-        ("monthly_extra_payment", data.monthly_extra_payment, 0.0, None),
-        ("purchase_price", data.purchase_price, 0.01, None),
-        ("term_years", data.term_years, 1, None),
+        (
+            "annual_interest_percentage",
+            data.annual_interest_percentage,
+            0,
+            MAX_ANNUAL_INTEREST_PERCENTAGE,
+        ),
+        ("closing_costs", data.closing_costs, 0, MAX_DOLLAR_AMOUNT),
+        ("down_payment_percentage", data.down_payment_percentage, 0, 100),
+        ("monthly_extra_payment", data.monthly_extra_payment, 0, MAX_DOLLAR_AMOUNT),
+        ("purchase_price", data.purchase_price, 0.01, MAX_DOLLAR_AMOUNT),
+        ("term_years", data.term_years, 1, MAX_TERM_YEARS),
     ]
 
     for name, value, min_v, max_v in checks:
@@ -71,22 +91,34 @@ def validate_payload(data: LoanInput) -> Tuple[Dict[str, Any] | None, List[str]]
         if err:
             errors.append(err)
 
-    if not isinstance(data.origination_date, date):
-        errors.append("origination_date is required and must be a date.")
+    term_is_valid = 1 <= data.term_years <= MAX_TERM_YEARS
+    last_due_date = (
+        final_due_date(data.origination_date, data.term_years * 12)
+        if term_is_valid
+        else None
+    )
 
     normalized_extras: dict[date, float] = {}
-    if data.one_time_extras:
-        for extra_date, amount in data.one_time_extras.items():
-            if not isinstance(extra_date, date):
-                errors.append("one_time_extras keys must be dates.")
-                continue
-            err = _validate_number(
-                "one_time_extras amount", float(amount), min_value=0.0
+    for extra_date, amount in (data.one_time_extras or {}).items():
+        err = _validate_number(
+            f"one_time_extras amount on {extra_date}",
+            float(amount),
+            min_value=0,
+            max_value=MAX_DOLLAR_AMOUNT,
+        )
+        if err:
+            errors.append(err)
+        elif extra_date < data.origination_date:
+            errors.append(
+                f"one_time_extras date {extra_date} is before the origination date."
             )
-            if err:
-                errors.append(err)
-            else:
-                normalized_extras[extra_date] = float(amount)
+        # The final scheduled payment clears the loan, so a later extra would be ignored.
+        elif last_due_date and extra_date >= last_due_date:
+            errors.append(
+                f"one_time_extras date {extra_date} must be before the final payment due date ({last_due_date})."
+            )
+        else:
+            normalized_extras[extra_date] = float(amount)
 
     if errors:
         return None, errors
@@ -107,7 +139,6 @@ def validate_payload(data: LoanInput) -> Tuple[Dict[str, Any] | None, List[str]]
 @app.post("/analyze")
 def analyze_loan(data: LoanInput):
     cleaned, errors = validate_payload(data)
-    print("cleaned")
     if errors:
         return JSONResponse(status_code=422, content={"errors": errors})
 

@@ -15,6 +15,7 @@ if (
 var themeToggleBtn = document.getElementById("theme-toggle");
 var analyzeButton = document.getElementById("analyze");
 var errorContainer = document.getElementById("form-errors");
+var lastResult = null;
 
 themeToggleBtn.addEventListener("click", function () {
   // toggle icons inside button
@@ -42,7 +43,7 @@ themeToggleBtn.addEventListener("click", function () {
     }
   }
 
-  analyzeLoan();
+  if (lastResult) drawPlotlyCharts(lastResult);
 });
 
 function clearErrors() {
@@ -86,8 +87,9 @@ function setLoading(isLoading) {
 }
 
 function parseNumber(id, { min = null, max = null, integer = false } = {}) {
-  const raw = document.getElementById(id)?.value ?? "";
-  const value = integer ? parseInt(raw, 10) : parseFloat(raw);
+  const raw = (document.getElementById(id)?.value ?? "").trim();
+  if (raw === "") return { error: "Required." };
+  const value = Number(raw);
   if (Number.isNaN(value)) return { error: "Must be a number." };
   if (!Number.isFinite(value)) return { error: "Must be finite." };
   if (min !== null && value < min) return { error: `Must be >= ${min}.` };
@@ -171,6 +173,11 @@ function drawPlotlyCharts(data) {
 
 const backend_base_url = "http://localhost:8001";
 
+// Keep in sync with the limits in backend/src/main.py
+const MAX_ANNUAL_INTEREST_PERCENTAGE = 100;
+const MAX_DOLLAR_AMOUNT = 1_000_000_000;
+const MAX_TERM_YEARS = 50;
+
 // Analyze loan
 async function analyzeLoan() {
   clearErrors();
@@ -178,13 +185,19 @@ async function analyzeLoan() {
   try {
     const errors = [];
 
-    const rate = parseNumber("annual_interest_percentage", { min: 0 });
+    const rate = parseNumber("annual_interest_percentage", {
+      min: 0,
+      max: MAX_ANNUAL_INTEREST_PERCENTAGE,
+    });
     if (rate.error) {
       errors.push("Rate " + rate.error);
       addFieldError("annual_interest_percentage", rate.error);
     }
 
-    const closing = parseNumber("closing_costs", { min: 0 });
+    const closing = parseNumber("closing_costs", {
+      min: 0,
+      max: MAX_DOLLAR_AMOUNT,
+    });
     if (closing.error) {
       errors.push("Closing costs " + closing.error);
       addFieldError("closing_costs", closing.error);
@@ -196,19 +209,29 @@ async function analyzeLoan() {
       addFieldError("down_payment_percentage", down.error);
     }
 
-    const extra = parseNumber("monthly_extra_payment", { min: 0 });
+    const extra = parseNumber("monthly_extra_payment", {
+      min: 0,
+      max: MAX_DOLLAR_AMOUNT,
+    });
     if (extra.error) {
       errors.push("Monthly extra " + extra.error);
       addFieldError("monthly_extra_payment", extra.error);
     }
 
-    const price = parseNumber("purchase_price", { min: 0.01 });
+    const price = parseNumber("purchase_price", {
+      min: 0.01,
+      max: MAX_DOLLAR_AMOUNT,
+    });
     if (price.error) {
       errors.push("Purchase price " + price.error);
       addFieldError("purchase_price", price.error);
     }
 
-    const term = parseNumber("term_years", { min: 1, integer: true });
+    const term = parseNumber("term_years", {
+      min: 1,
+      max: MAX_TERM_YEARS,
+      integer: true,
+    });
     if (term.error) {
       errors.push("Term years " + term.error);
       addFieldError("term_years", term.error);
@@ -226,19 +249,22 @@ async function analyzeLoan() {
       const amountRaw = row.querySelector(".extra-amount")?.value;
       if (!monthRaw && !amountRaw) return;
       const parsedDate = Date.parse(monthRaw);
-      const amount = parseFloat(amountRaw);
+      const amount = amountRaw?.trim() ? Number(amountRaw) : NaN;
       if (Number.isNaN(parsedDate)) {
         errors.push("Extra payment date is invalid.");
         row.querySelector(".extra-month")?.classList.add("border-red-500");
         return;
       }
-      if (Number.isNaN(amount) || amount < 0) {
-        errors.push("Extra payment amount must be a non-negative number.");
+      if (Number.isNaN(amount) || amount < 0 || amount > MAX_DOLLAR_AMOUNT) {
+        errors.push(
+          `Extra payment amount must be between 0 and ${MAX_DOLLAR_AMOUNT}.`
+        );
         row.querySelector(".extra-amount")?.classList.add("border-red-500");
         return;
       }
       const iso = new Date(parsedDate).toISOString().slice(0, 10);
-      extras[iso] = amount;
+      // Several payments on the same date add up
+      extras[iso] = (extras[iso] ?? 0) + amount;
     });
 
     if (errors.length) {
@@ -263,10 +289,9 @@ async function analyzeLoan() {
 
     const data = await response.json();
     if (!response.ok) {
-      const errMsg =
-        (data && data.errors && data.errors.join("; ")) ||
-        data?.detail ||
-        "Request failed.";
+      const errMsg = Array.isArray(data?.errors)
+        ? data.errors.join("; ")
+        : `Request failed (${response.status}).`;
       showGeneralError(errMsg);
       return;
     }
@@ -280,6 +305,7 @@ async function analyzeLoan() {
     ).innerText = `$${data.total_interest}`;
 
     // Plotly Charts
+    lastResult = data;
     drawPlotlyCharts(data);
 
     // Create amortization table
@@ -341,7 +367,7 @@ document.getElementById("add-extra").addEventListener("click", () => {
             />
           </svg>
         </div>
-        <input id="origination_date" type="date" class="extra-month ps-9" placeholder="mm/dd/yyy" required />
+        <input type="date" class="extra-month ps-9" aria-label="Extra payment date" required />
       </div>
     </div>
 
@@ -350,7 +376,7 @@ document.getElementById("add-extra").addEventListener("click", () => {
         <div class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3.5">
           <span class="text-gray-500 dark:text-gray-400">$</span>
         </div>
-        <input type="text" id="purchase_price" class="extra-amount ps-7 " placeholder="0" required />
+        <input type="text" class="extra-amount ps-7" aria-label="Extra payment amount" placeholder="0" required />
       </div>
     </div>
     <div class="col-span-1 sm:col-span-1">

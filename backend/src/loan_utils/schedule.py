@@ -8,6 +8,15 @@ from loan_utils.calc import apply_payment
 from loan_utils.models import AggregatedRow, LoanTerms, PaymentEvent, ScheduleRow
 
 
+def first_due_date(origination_date: date) -> date:
+    """The first payment is due on the 1st of the second month after origination."""
+    return (origination_date + relativedelta(months=+2)).replace(day=1)
+
+
+def final_due_date(origination_date: date, term_months: int) -> date:
+    return first_due_date(origination_date) + relativedelta(months=term_months - 1)
+
+
 def build_payment_events(
     origination_date: date,
     term_months: int,
@@ -16,8 +25,7 @@ def build_payment_events(
     extras: dict[date, Decimal],
 ) -> list[PaymentEvent]:
     events: list[PaymentEvent] = []
-    first_due_date = (origination_date + relativedelta(months=+2)).replace(day=1)
-    payment_date = first_due_date
+    payment_date = first_due_date(origination_date)
 
     for _ in range(term_months):
         if monthly_extra > Decimal("0"):
@@ -47,7 +55,7 @@ def build_schedule(
     total_paid = Decimal("0")
     rows: list[ScheduleRow] = []
     payment_id = 0
-    due_date = (terms.origination_date + relativedelta(months=+2)).replace(day=1)
+    due_date = first_due_date(terms.origination_date)
 
     for event in events:
         if balance <= 0:
