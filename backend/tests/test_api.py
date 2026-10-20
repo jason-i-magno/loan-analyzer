@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 from fastapi.testclient import TestClient
 from main import app
@@ -20,7 +22,7 @@ def post(**overrides):
     return client.post("/analyze", json={**VALID_PAYLOAD, **overrides})
 
 
-def test_analyze_accepts_valid_payload():
+def test_analyze_returns_consistent_totals():
     response = post()
     assert response.status_code == 200
     data = response.json()
@@ -28,6 +30,12 @@ def test_analyze_accepts_valid_payload():
     assert data["monthly_payment"] == 1438.92
     assert data["principal"] == 240000
     assert len(data["schedule"]) == 360
+    assert data["schedule"][-1]["ending_balance"] == "$0.00"
+    total_paid = Decimal(str(data["total_paid"]))
+    total_interest = Decimal(str(data["total_interest"]))
+    assert total_paid == Decimal("240000") + total_interest
+    # down payment + closing costs + loan payments
+    assert Decimal(str(data["total_cost"])) == Decimal("65000") + total_paid
 
 
 def test_analyze_one_time_extras_is_optional():
@@ -74,3 +82,4 @@ def test_extra_just_before_final_due_date_is_applied():
     schedule = response.json()["schedule"]
     assert schedule[-2]["description"] == "Curtailment"
     assert schedule[-2]["payment_amount"] == "$100.00"
+    assert schedule[-1]["ending_balance"] == "$0.00"

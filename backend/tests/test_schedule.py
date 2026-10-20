@@ -1,6 +1,8 @@
 from datetime import date
 from decimal import Decimal
 
+import pytest
+from loan_utils.calc import monthly_payment
 from loan_utils.models import LoanTerms, PaymentEvent
 from loan_utils.schedule import aggregate_schedule, build_payment_events, build_schedule
 
@@ -31,7 +33,6 @@ def test_build_schedule_pays_off_early_with_large_extra():
     terms = LoanTerms(
         principal=Decimal("1000"),
         purchase_price=Decimal("1500"),
-        annual_rate=Decimal("0.12"),
         monthly_rate=Decimal("0.01"),
         term_months=12,
         origination_date=date(2024, 1, 15),
@@ -47,7 +48,9 @@ def test_build_schedule_pays_off_early_with_large_extra():
     # Should stop once balance hits zero; only two events needed.
     assert len(rows) == 2
     assert rows[-1].ending_balance == Decimal("0")
-    assert total_paid == Decimal("1020")  # 900 + 120
+    # The final payment is capped at the payoff amount (100 balance + 1 interest).
+    assert rows[-1].payment_amount == Decimal("101.00")
+    assert total_paid == Decimal("1001.00")
     assert quantize(total_interest) == Decimal("1.00")
 
 
@@ -55,7 +58,6 @@ def test_aggregate_schedule_sums_by_due_date():
     terms = LoanTerms(
         principal=Decimal("500"),
         purchase_price=Decimal("1000"),
-        annual_rate=Decimal("0.12"),
         monthly_rate=Decimal("0.01"),
         term_months=6,
         origination_date=date(2024, 1, 15),
@@ -83,3 +85,65 @@ def test_aggregate_schedule_sums_by_due_date():
     assert april.due_date.month == 4
     # April bucket includes the curtailment (50) + second scheduled payment principal (~96.45)
     assert quantize(april.principal_portion) == Decimal("146.45")
+
+
+@pytest.mark.parametrize("annual_percent", ["0", "6.0", "6.5", "7.125"])
+def test_full_term_schedule_pays_off_exactly(annual_percent):
+    principal = Decimal("240000")
+    monthly_rate = Decimal(annual_percent) / 100 / 12
+    term_months = 360
+    terms = LoanTerms(
+        principal=principal,
+        purchase_price=Decimal("300000"),
+        monthly_rate=monthly_rate,
+        term_months=term_months,
+        origination_date=date(2024, 1, 15),
+    )
+    payment = quantize(monthly_payment(principal, monthly_rate, term_months))
+    events = build_payment_events(
+        origination_date=terms.origination_date,
+        term_months=term_months,
+        monthly_payment=payment,
+        monthly_extra=Decimal("0"),
+        extras={},
+    )
+
+    rows, total_interest, total_paid = build_schedule(terms, events)
+
+    assert len(rows) == term_months
+    assert rows[-1].ending_balance == Decimal("0")
+    assert total_paid == principal + total_interest
+    assert sum(r.principal_portion for r in rows) == principal
+
+
+def test_build_schedule_caps_oversized_extra_payment():
+    terms = LoanTerms(
+        principal=Decimal("1000"),
+        purchase_price=Decimal("1500"),
+        monthly_rate=Decimal("0.01"),
+        term_months=12,
+        origination_date=date(2024, 1, 15),
+    )
+    events = [
+        PaymentEvent(kind="curtailment", when=date(2024, 2, 15), amount=Decimal("1000000")),
+        PaymentEvent(kind="scheduled", when=date(2024, 3, 1), amount=Decimal("120")),
+    ]
+
+    rows, total_interest, total_paid = build_schedule(terms, events)
+
+    assert len(rows) == 1
+    assert rows[0].payment_amount == Decimal("1000")
+    assert rows[0].principal_portion == Decimal("1000")
+    assert total_paid == Decimal("1000")
+    assert total_interest == Decimal("0")
+
+
+def test_build_payment_events_skips_zero_extras():
+    events = build_payment_events(
+        origination_date=date(2024, 1, 15),
+        term_months=1,
+        monthly_payment=Decimal("100"),
+        monthly_extra=Decimal("0"),
+        extras={date(2024, 2, 20): Decimal("0")},
+    )
+    assert [e.kind for e in events] == ["scheduled"]

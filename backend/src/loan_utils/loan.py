@@ -1,8 +1,6 @@
 from datetime import date
 from decimal import Decimal
 
-import pandas as pd
-
 from loan_utils.calc import monthly_payment
 from loan_utils.dollar import Dollar
 from loan_utils.formatting import format_aggregated, format_schedule
@@ -28,10 +26,11 @@ class Loan:
         Args:
             annual_interest_percent: Annual interest rate as a percentage (e.g. 6.5)
             down_payment_percent: Down payment percentage (0-100)
+            origination_date: Date the loan originates
             purchase_price: Total property price
             term_years: Term in years
             monthly_extra_payment: Extra amount added to every monthly payment (default 0)
-            one_time_extras: Dict of {month_number: extra_payment_amount}
+            one_time_extras: Dict of {payment_date: extra_payment_amount}
         """
         if down_payment_percent < 0.0 or down_payment_percent > 100.0:
             raise ValueError("Down payment percentage must be between 0 and 100.")
@@ -46,7 +45,6 @@ class Loan:
             down_payment_percent / 100.0
         )
         self.loan_amount: Dollar = self.purchase_price - self.down_payment
-        self.annual_interest_rate: float = annual_interest_percent / 100
         self.monthly_interest_rate: float = Rate(annual_interest_percent).per_period(12)
         self.term_months: int = term_years * 12
         self.monthly_payment: Dollar = self.calculate_monthly_payment()
@@ -56,12 +54,11 @@ class Loan:
         self.monthly_extra_payment: Dollar = Dollar(monthly_extra_payment)
         self.one_time_extras: dict[date, float] = one_time_extras or {}
 
-    def amortization_schedule(self) -> pd.DataFrame:
-        """Return schedule and aggregated DataFrames for API compatibility."""
+    def amortization_schedule(self) -> tuple[list[dict], list[dict]]:
+        """Return the formatted schedule rows and per-due-date aggregated rows."""
         terms = LoanTerms(
             principal=self.loan_amount.amount,
             purchase_price=self.purchase_price.amount,
-            annual_rate=Decimal(str(self.annual_interest_rate)),
             monthly_rate=Decimal(str(self.monthly_interest_rate)),
             term_months=self.term_months,
             origination_date=self.origination_date,
@@ -78,13 +75,10 @@ class Loan:
         rows, total_interest, total_paid = build_schedule(terms, events)
         aggregated_rows = aggregate_schedule(rows)
 
-        schedule_df = pd.DataFrame(format_schedule(rows))
-        aggregated_df = pd.DataFrame(format_aggregated(aggregated_rows))
-
         self.total_interest = Dollar(str(total_interest))
         self.total_amount_payed = Dollar(str(total_paid))
 
-        return schedule_df, aggregated_df
+        return format_schedule(rows), format_aggregated(aggregated_rows)
 
     def calculate_monthly_payment(self) -> Dollar:
         payment: Decimal = monthly_payment(

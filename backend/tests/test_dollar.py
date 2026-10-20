@@ -46,6 +46,10 @@ def test_dollar_init_valid(input_value, expected):
         (set()),  # Disallow set
         (object()),  # Disallow object
         ("abc"),  # Disallow non-numeric string
+        ("nan"),  # Disallow NaN
+        (float("nan")),  # Disallow NaN
+        (float("inf")),  # Disallow infinity
+        ("-Infinity"),  # Disallow infinity
     ],
 )
 def invalid_init_case(request):
@@ -78,6 +82,7 @@ def test_dollar_init_invalid(invalid_init_case):
         (-1000.75, "-$1,000.75"),  # negative str
         (2.675, "$2.68"),  # floating point precision
         ("2.675", "$2.68"),  # floating point precision str
+        (-0.004, "$0.00"),  # rounds to negative zero
     ],
 )
 def test_dollar_str(input_value, expected):
@@ -589,6 +594,19 @@ def test_dollar_neg_valid(input_value, expected):
     dollar: Dollar = Dollar(input_value)
 
     assert (-dollar).amount == Decimal(str(expected))
+
+
+def test_unary_operators_do_not_mutate_operand():
+    dollar: Dollar = Dollar(-5)
+
+    assert (-dollar).amount == Decimal("5.00")
+    assert abs(dollar).amount == Decimal("5.00")
+    assert dollar.amount == Decimal("-5.00")
+
+
+def test_dollar_is_hashable():
+    assert hash(Dollar(100)) == hash(Dollar("100.00"))
+    assert len({Dollar(100), Dollar("100.00"), Dollar(50)}) == 2
 
 
 # --------------------

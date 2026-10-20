@@ -8,7 +8,6 @@ from typing import Literal
 class LoanTerms:
     principal: Decimal
     purchase_price: Decimal
-    annual_rate: Decimal
     monthly_rate: Decimal
     term_months: int
     origination_date: date
@@ -23,6 +22,7 @@ class PaymentEvent:
 
 @dataclass
 class PaymentBreakdown:
+    amount: Decimal
     principal: Decimal
     interest: Decimal
     new_balance: Decimal
