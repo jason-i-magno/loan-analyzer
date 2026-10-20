@@ -1,6 +1,8 @@
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from loan_utils.models import PaymentBreakdown
+
+CENT = Decimal("0.01")
 
 
 def monthly_payment(principal: Decimal, monthly_rate: Decimal, term_months: int) -> Decimal:
@@ -14,22 +16,35 @@ def monthly_payment(principal: Decimal, monthly_rate: Decimal, term_months: int)
 
 
 def interest_for_period(balance: Decimal, monthly_rate: Decimal) -> Decimal:
-    return balance * monthly_rate
+    """Interest accrued for one period, rounded to the cent."""
+    return (balance * monthly_rate).quantize(CENT, rounding=ROUND_HALF_UP)
 
 
 def apply_payment(
-    balance: Decimal, payment_amount: Decimal, monthly_rate: Decimal, kind: str
+    balance: Decimal,
+    payment_amount: Decimal,
+    monthly_rate: Decimal,
+    kind: str,
+    final: bool = False,
 ) -> PaymentBreakdown:
-    """Return principal/interest split and new balance for an event."""
+    """Return the amount applied, principal/interest split, and new balance for an event.
+
+    A payment never pays down more than the outstanding balance, and the final
+    scheduled payment (``final=True``) clears whatever balance remains so that
+    cent-rounding of the monthly payment doesn't leave a residue.
+    """
     if kind == "scheduled":
         interest = interest_for_period(balance, monthly_rate)
-        principal = payment_amount - interest
     else:
         interest = Decimal("0")
-        principal = payment_amount
 
-    new_balance = balance - principal
-    if new_balance < 0:
-        new_balance = Decimal("0")
+    principal = payment_amount - interest
+    if principal > balance or final:
+        principal = balance
 
-    return PaymentBreakdown(principal=principal, interest=interest, new_balance=new_balance)
+    return PaymentBreakdown(
+        amount=principal + interest,
+        principal=principal,
+        interest=interest,
+        new_balance=balance - principal,
+    )

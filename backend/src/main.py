@@ -158,8 +158,9 @@ def analyze_loan(data: LoanInput):
     return {
         "monthly_payment": mortgage.monthly_payment.amount,
         "principal": mortgage.loan_amount.amount,
-        "schedule": schedule.to_dict(orient="records"),
-        "aggregated": aggregated.to_dict(orient="records"),
+        "schedule": schedule,
+        "aggregated": aggregated,
         "total_interest": mortgage.total_interest.amount,
-        "total_cost": mortgage.total_amount_payed.amount,
+        "total_paid": mortgage.total_amount_payed.amount,
+        "total_cost": mortgage.total_cost.amount,
     }

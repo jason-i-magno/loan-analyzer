@@ -14,7 +14,9 @@ class Dollar:
             self.amount = self._to_decimal(amount)
 
     def __str__(self) -> str:
-        return f"${self.amount:,.2f}" if self.amount >= 0 else f"-${-self.amount:,.2f}"
+        # abs() also drops the sign from a negative zero (e.g. Dollar(-0.004))
+        sign = "-" if self.amount < 0 else ""
+        return f"{sign}${abs(self.amount):,.2f}"
 
     def __repr__(self) -> str:
         return f"Dollar({str(self.amount)})"
@@ -70,6 +72,9 @@ class Dollar:
 
         return self.amount == other.amount
 
+    def __hash__(self):
+        return hash(self.amount)
+
     def __lt__(self, other):
         self._check_is_dollar(other, "<")
 
@@ -94,12 +99,10 @@ class Dollar:
     # Unary Operators
     # --------------------
     def __abs__(self):
-        self.amount = abs(self.amount)
-        return self
+        return Dollar._from_decimal(abs(self.amount))
 
     def __neg__(self):
-        self.amount = -self.amount
-        return self
+        return Dollar._from_decimal(-self.amount)
 
     # --------------------
     # Internal helpers
@@ -127,9 +130,10 @@ class Dollar:
                 "To avoid floating point issues, Decimal input is not allowed. Use float, int, str, or Dollar instead."
             )
         try:
-            return Decimal(str(amount)).quantize(
-                Decimal("0.01"), rounding=ROUND_HALF_UP
-            )
+            value = Decimal(str(amount))
+            if not value.is_finite():
+                raise InvalidOperation
+            return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         except (InvalidOperation, ValueError, TypeError):
             raise TypeError(f"Unsupported type for Dollar conversion: {amount!r}")
 

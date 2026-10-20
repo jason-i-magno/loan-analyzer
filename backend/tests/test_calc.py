@@ -40,3 +40,39 @@ def test_apply_payment_curtailment_no_interest():
     assert breakdown.interest == Decimal("0")
     assert breakdown.principal == Decimal("200")
     assert breakdown.new_balance == Decimal("800")
+
+
+def test_apply_payment_rounds_interest_to_cents():
+    breakdown = apply_payment(
+        balance=Decimal("1000.55"),
+        payment_amount=Decimal("100"),
+        monthly_rate=Decimal("0.005"),
+        kind="scheduled",
+    )
+    assert breakdown.interest == Decimal("5.00")  # 5.00275 rounded
+
+
+def test_apply_payment_caps_overpayment_at_balance():
+    breakdown = apply_payment(
+        balance=Decimal("50"),
+        payment_amount=Decimal("200"),
+        monthly_rate=Decimal("0.01"),
+        kind="curtailment",
+    )
+    assert breakdown.amount == Decimal("50")
+    assert breakdown.principal == Decimal("50")
+    assert breakdown.new_balance == Decimal("0")
+
+
+def test_apply_payment_final_clears_residual_balance():
+    breakdown = apply_payment(
+        balance=Decimal("103.27"),
+        payment_amount=Decimal("100"),
+        monthly_rate=Decimal("0.01"),
+        kind="scheduled",
+        final=True,
+    )
+    assert breakdown.interest == Decimal("1.03")
+    assert breakdown.principal == Decimal("103.27")
+    assert breakdown.amount == Decimal("104.30")
+    assert breakdown.new_balance == Decimal("0")

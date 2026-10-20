@@ -17,6 +17,11 @@ var analyzeButton = document.getElementById("analyze");
 var errorContainer = document.getElementById("form-errors");
 var lastResult = null;
 
+const currencyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+});
+
 themeToggleBtn.addEventListener("click", function () {
   // toggle icons inside button
   themeToggleDarkIcon.classList.toggle("hidden");
@@ -296,13 +301,14 @@ async function analyzeLoan() {
       return;
     }
 
-    document.getElementById(
-      "monthly_payment"
-    ).innerText = `$${data.monthly_payment}`;
+    document.getElementById("monthly_payment").innerText =
+      currencyFormatter.format(data.monthly_payment);
 
-    document.getElementById(
-      "total_interest"
-    ).innerText = `$${data.total_interest}`;
+    document.getElementById("total_interest").innerText =
+      currencyFormatter.format(data.total_interest);
+
+    document.getElementById("total_cost").innerText =
+      currencyFormatter.format(data.total_cost);
 
     // Plotly Charts
     lastResult = data;

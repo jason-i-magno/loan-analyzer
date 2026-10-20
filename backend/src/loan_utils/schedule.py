@@ -40,7 +40,8 @@ def build_payment_events(
         payment_date += relativedelta(months=+1)
 
     for extra_date, amount in extras.items():
-        events.append(PaymentEvent(kind="curtailment", when=extra_date, amount=amount))
+        if amount > Decimal("0"):
+            events.append(PaymentEvent(kind="curtailment", when=extra_date, amount=amount))
 
     events.sort(key=lambda e: e.when)
     return events
@@ -55,6 +56,7 @@ def build_schedule(
     total_paid = Decimal("0")
     rows: list[ScheduleRow] = []
     payment_id = 0
+    scheduled_count = 0
     due_date = first_due_date(terms.origination_date)
 
     for event in events:
@@ -62,10 +64,18 @@ def build_schedule(
             break
 
         payment_id += 1
-        breakdown = apply_payment(balance, event.amount, terms.monthly_rate, event.kind)
+        if event.kind == "scheduled":
+            scheduled_count += 1
+        breakdown = apply_payment(
+            balance,
+            event.amount,
+            terms.monthly_rate,
+            event.kind,
+            final=event.kind == "scheduled" and scheduled_count == terms.term_months,
+        )
 
         total_interest += breakdown.interest
-        total_paid += event.amount
+        total_paid += breakdown.amount
         balance = breakdown.new_balance
 
         rows.append(
@@ -74,7 +84,7 @@ def build_schedule(
                 due_date=due_date,
                 payment_date=event.when,
                 description="Scheduled" if event.kind == "scheduled" else "Curtailment",
-                payment_amount=event.amount,
+                payment_amount=breakdown.amount,
                 principal_portion=breakdown.principal,
                 interest_portion=breakdown.interest,
                 total_interest=total_interest,

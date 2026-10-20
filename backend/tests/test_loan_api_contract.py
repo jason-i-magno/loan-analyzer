@@ -14,7 +14,7 @@ def test_amortization_schedule_contract_shape():
         one_time_extras={},
     )
 
-    schedule_df, aggregated_df = loan.amortization_schedule()
+    schedule, aggregated = loan.amortization_schedule()
 
     expected_schedule_cols = {
         "payment_id",
@@ -28,9 +28,9 @@ def test_amortization_schedule_contract_shape():
         "ending_balance",
         "resulting_ltv",
     }
-    assert expected_schedule_cols.issubset(schedule_df.columns)
-    assert len(schedule_df) > 0
+    assert len(schedule) > 0
+    assert expected_schedule_cols.issubset(schedule[0].keys())
 
     expected_agg_cols = {"due_date", "principal_portion", "interest_portion"}
-    assert expected_agg_cols.issubset(aggregated_df.columns)
-    assert len(aggregated_df) > 0
+    assert len(aggregated) > 0
+    assert expected_agg_cols.issubset(aggregated[0].keys())

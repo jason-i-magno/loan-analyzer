@@ -18,8 +18,7 @@ COPY LICENSE ./
 # Install dependencies
 RUN pip install --no-cache-dir -e .
 
-# Expose port for FastAPI dev server
 EXPOSE 8000
 
-# Run with auto-reload
-# CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# compose.yaml overrides this with an auto-reloading dev server
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]

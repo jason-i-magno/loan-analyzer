@@ -26,3 +26,11 @@ class Mortgage(Loan):
             one_time_extras=one_time_extras,
         )
         self.closing_costs: Dollar = Dollar(closing_costs)
+
+    @property
+    def total_cost(self) -> Dollar:
+        """Down payment + closing costs + all loan payments.
+
+        Only meaningful after amortization_schedule() has been run.
+        """
+        return self.down_payment + self.closing_costs + self.total_amount_payed
