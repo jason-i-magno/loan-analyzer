@@ -13,6 +13,9 @@ if (
 }
 
 var themeToggleBtn = document.getElementById("theme-toggle");
+var analyzeButton = document.getElementById("analyze");
+var errorContainer = document.getElementById("form-errors");
+var lastResult = null;
 
 themeToggleBtn.addEventListener("click", function () {
   // toggle icons inside button
@@ -40,8 +43,69 @@ themeToggleBtn.addEventListener("click", function () {
     }
   }
 
-  analyzeLoan();
+  if (lastResult) drawPlotlyCharts(lastResult);
 });
+
+function clearErrors() {
+  document
+    .querySelectorAll("input")
+    .forEach((el) =>
+      el.classList.remove(
+        "border-red-500",
+        "focus:border-red-500",
+        "focus:ring-red-500"
+      )
+    );
+  document.querySelectorAll(".error-msg").forEach((el) => el.remove());
+  errorContainer.textContent = "";
+  errorContainer.classList.add("hidden");
+}
+
+function addFieldError(inputId, message) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  input.classList.add(
+    "border-red-500",
+    "focus:border-red-500",
+    "focus:ring-red-500"
+  );
+  const msg = document.createElement("div");
+  msg.className = "error-msg text-red-600 dark:text-red-400 text-xs mt-1";
+  msg.textContent = message;
+  input.insertAdjacentElement("afterend", msg);
+}
+
+function showGeneralError(message) {
+  errorContainer.textContent = message;
+  errorContainer.classList.remove("hidden");
+}
+
+function setLoading(isLoading) {
+  if (!analyzeButton) return;
+  analyzeButton.disabled = isLoading;
+  analyzeButton.textContent = isLoading ? "Analyzing..." : "Analyze";
+}
+
+function parseNumber(id, { min = null, max = null, integer = false } = {}) {
+  const raw = (document.getElementById(id)?.value ?? "").trim();
+  if (raw === "") return { error: "Required." };
+  const value = Number(raw);
+  if (Number.isNaN(value)) return { error: "Must be a number." };
+  if (!Number.isFinite(value)) return { error: "Must be finite." };
+  if (min !== null && value < min) return { error: `Must be >= ${min}.` };
+  if (max !== null && value > max) return { error: `Must be <= ${max}.` };
+  if (integer && !Number.isInteger(value))
+    return { error: "Must be an integer." };
+  return { value };
+}
+
+function parseDateValue(id) {
+  const raw = document.getElementById(id)?.value;
+  if (!raw) return { error: "Date is required." };
+  const ts = Date.parse(raw);
+  if (Number.isNaN(ts)) return { error: "Invalid date." };
+  return { value: new Date(ts).toISOString().slice(0, 10) };
+}
 
 // Plotly Charts
 const plotlyLightTheme = {
@@ -109,85 +173,170 @@ function drawPlotlyCharts(data) {
 
 const backend_base_url = "http://localhost:8001";
 
+// Keep in sync with the limits in backend/src/main.py
+const MAX_ANNUAL_INTEREST_PERCENTAGE = 100;
+const MAX_DOLLAR_AMOUNT = 1_000_000_000;
+const MAX_TERM_YEARS = 50;
+
 // Analyze loan
 async function analyzeLoan() {
-  const annual_interest_percentage = parseFloat(
-    document.getElementById("annual_interest_percentage").value
-  );
-  const closing_costs = parseFloat(
-    document.getElementById("closing_costs").value
-  );
-  const down_payment_percentage = parseFloat(
-    document.getElementById("down_payment_percentage").value
-  );
-  const monthly_extra_payment = parseFloat(
-    document.getElementById("monthly_extra_payment").value
-  );
-  const origination_date = document.getElementById("origination_date").value;
-  const purchase_price = parseFloat(
-    document.getElementById("purchase_price").value
-  );
-  const term_years = parseInt(document.getElementById("term_years").value);
+  clearErrors();
+  setLoading(true);
+  try {
+    const errors = [];
 
-  // One time extra payments.
-  const extras = {};
-  document.querySelectorAll(".extra-row").forEach((row) => {
-    const month = row.querySelector(".extra-month").value;
-    const amount = parseFloat(row.querySelector(".extra-amount").value);
-    if (month && !isNaN(amount)) extras[month] = amount;
-  });
+    const rate = parseNumber("annual_interest_percentage", {
+      min: 0,
+      max: MAX_ANNUAL_INTEREST_PERCENTAGE,
+    });
+    if (rate.error) {
+      errors.push("Rate " + rate.error);
+      addFieldError("annual_interest_percentage", rate.error);
+    }
 
-  const response = await fetch(`${backend_base_url}/analyze`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      annual_interest_percentage,
-      closing_costs,
-      down_payment_percentage,
-      monthly_extra_payment,
-      origination_date,
-      purchase_price,
-      term_years,
-      one_time_extras: extras,
-    }),
-  });
+    const closing = parseNumber("closing_costs", {
+      min: 0,
+      max: MAX_DOLLAR_AMOUNT,
+    });
+    if (closing.error) {
+      errors.push("Closing costs " + closing.error);
+      addFieldError("closing_costs", closing.error);
+    }
 
-  const data = await response.json();
+    const down = parseNumber("down_payment_percentage", { min: 0, max: 100 });
+    if (down.error) {
+      errors.push("Down payment " + down.error);
+      addFieldError("down_payment_percentage", down.error);
+    }
 
-  document.getElementById(
-    "monthly_payment"
-  ).innerText = `$${data.monthly_payment}`;
+    const extra = parseNumber("monthly_extra_payment", {
+      min: 0,
+      max: MAX_DOLLAR_AMOUNT,
+    });
+    if (extra.error) {
+      errors.push("Monthly extra " + extra.error);
+      addFieldError("monthly_extra_payment", extra.error);
+    }
 
-  document.getElementById(
-    "total_interest"
-  ).innerText = `$${data.total_interest}`;
+    const price = parseNumber("purchase_price", {
+      min: 0.01,
+      max: MAX_DOLLAR_AMOUNT,
+    });
+    if (price.error) {
+      errors.push("Purchase price " + price.error);
+      addFieldError("purchase_price", price.error);
+    }
 
-  // Plotly Charts
-  drawPlotlyCharts(data);
+    const term = parseNumber("term_years", {
+      min: 1,
+      max: MAX_TERM_YEARS,
+      integer: true,
+    });
+    if (term.error) {
+      errors.push("Term years " + term.error);
+      addFieldError("term_years", term.error);
+    }
 
-  // Create amortization table
-  const schedule = data.schedule;
-  const table_body = document.getElementById("schedule_table_body");
-  table_body.innerHTML = `
-    ${schedule
-      .map(
-        (row) => `
-        <tr>
-          <th scope="row">${row.payment_id}</th>
-          <td>${row.due_date}</td>
-          <td>${row.payment_date}</td>
-          <td>${row.description}</td>
-          <td>${row.payment_amount}</td>
-          <td>${row.principal_portion}</td>
-          <td>${row.interest_portion}</td>
-          <td>${row.total_interest}</td>
-          <td>${row.ending_balance}</td>
-          <td>${row.resulting_ltv}</td>
-        </tr>
-      `
-      )
-      .join("")}
-  `;
+    const origDate = parseDateValue("origination_date");
+    if (origDate.error) {
+      errors.push("Origination date " + origDate.error);
+      addFieldError("origination_date", origDate.error);
+    }
+
+    const extras = {};
+    document.querySelectorAll(".extra-row").forEach((row) => {
+      const monthRaw = row.querySelector(".extra-month")?.value;
+      const amountRaw = row.querySelector(".extra-amount")?.value;
+      if (!monthRaw && !amountRaw) return;
+      const parsedDate = Date.parse(monthRaw);
+      const amount = amountRaw?.trim() ? Number(amountRaw) : NaN;
+      if (Number.isNaN(parsedDate)) {
+        errors.push("Extra payment date is invalid.");
+        row.querySelector(".extra-month")?.classList.add("border-red-500");
+        return;
+      }
+      if (Number.isNaN(amount) || amount < 0 || amount > MAX_DOLLAR_AMOUNT) {
+        errors.push(
+          `Extra payment amount must be between 0 and ${MAX_DOLLAR_AMOUNT}.`
+        );
+        row.querySelector(".extra-amount")?.classList.add("border-red-500");
+        return;
+      }
+      const iso = new Date(parsedDate).toISOString().slice(0, 10);
+      // Several payments on the same date add up
+      extras[iso] = (extras[iso] ?? 0) + amount;
+    });
+
+    if (errors.length) {
+      showGeneralError("Please fix the highlighted fields.");
+      return;
+    }
+
+    const response = await fetch(`${backend_base_url}/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        annual_interest_percentage: rate.value,
+        closing_costs: closing.value,
+        down_payment_percentage: down.value,
+        monthly_extra_payment: extra.value,
+        origination_date: origDate.value,
+        purchase_price: price.value,
+        term_years: term.value,
+        one_time_extras: extras,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      const errMsg = Array.isArray(data?.errors)
+        ? data.errors.join("; ")
+        : `Request failed (${response.status}).`;
+      showGeneralError(errMsg);
+      return;
+    }
+
+    document.getElementById(
+      "monthly_payment"
+    ).innerText = `$${data.monthly_payment}`;
+
+    document.getElementById(
+      "total_interest"
+    ).innerText = `$${data.total_interest}`;
+
+    // Plotly Charts
+    lastResult = data;
+    drawPlotlyCharts(data);
+
+    // Create amortization table
+    const schedule = data.schedule;
+    const table_body = document.getElementById("schedule_table_body");
+    table_body.innerHTML = `
+      ${schedule
+        .map(
+          (row) => `
+          <tr>
+            <th scope="row">${row.payment_id}</th>
+            <td>${row.due_date}</td>
+            <td>${row.payment_date}</td>
+            <td>${row.description}</td>
+            <td>${row.payment_amount}</td>
+            <td>${row.principal_portion}</td>
+            <td>${row.interest_portion}</td>
+            <td>${row.total_interest}</td>
+            <td>${row.ending_balance}</td>
+            <td>${row.resulting_ltv}</td>
+          </tr>
+        `
+        )
+        .join("")}
+    `;
+  } catch (err) {
+    console.error(err);
+    showGeneralError("Something went wrong. Please try again.");
+  } finally {
+    setLoading(false);
+  }
 }
 
 document.getElementById("analyze").addEventListener("click", async () => {
@@ -218,7 +367,7 @@ document.getElementById("add-extra").addEventListener("click", () => {
             />
           </svg>
         </div>
-        <input id="origination_date" type="date" class="extra-month ps-9" placeholder="mm/dd/yyy" required />
+        <input type="date" class="extra-month ps-9" aria-label="Extra payment date" required />
       </div>
     </div>
 
@@ -227,7 +376,7 @@ document.getElementById("add-extra").addEventListener("click", () => {
         <div class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3.5">
           <span class="text-gray-500 dark:text-gray-400">$</span>
         </div>
-        <input type="text" id="purchase_price" class="extra-amount ps-7 " placeholder="0" required />
+        <input type="text" class="extra-amount ps-7" aria-label="Extra payment amount" placeholder="0" required />
       </div>
     </div>
     <div class="col-span-1 sm:col-span-1">
